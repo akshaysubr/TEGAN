@@ -1,4 +1,4 @@
-## Generative Adversarial Networks for Turbulence Enrichment
+## Turbulence Enrichment using Generative Adversarial Networks
 Project category: GANs
 
 ### What and why
