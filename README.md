@@ -1,6 +1,13 @@
 ## Turbulence Enrichment using Generative Adversarial Networks
 Project category: GANs
 
+| **Team members**     | **SUID**   |
+|:---------------------|:----------:|
+| Raunak Borker        | rborker    |
+| Sravya Nimmagadda    | sravya     |
+| Akshay Subramaniam   | akshays    |
+| Man-Long Wong        | wongml     |
+
 ### What and why
 Turbulent flow is important in many engineering applications. However, simulating turbulence is very computationally expensive due to extremely high resolution requirements. Large Eddy Simulations (LES) that simulate only the large scales have become popular due much lower cost, but require explicit modeling of the small scales. Here, we propose to enrich LES data by populating it with small scales obtained using a Generative Adversarial Network (GAN).
 
