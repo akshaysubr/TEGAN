@@ -34,12 +34,12 @@ def convertBinaryToTFRecord(input_filename):
     
     output_filename = input_filename[0] + input_filename[1] + '.tfrecords'
 
-    writeSingleTFRecordFile(u,v,w,p,shape,output_filename)
+    writeTFRecord(u,v,w,p,shape,output_filename)
     
     return
     
 def binaryToTFRecord(input_filename_list):
     for input_filename in input_filename_list:
-        convertBinToTFRecordFile(input_filename)
+        convertBinaryToTFRecordFile(input_filename)
         
     return
