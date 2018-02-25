@@ -1,8 +1,10 @@
 import numpy as np
 import tensorflow as tf
 
+from hitDataTools import read_data
+
 def _floatFeature(value):
-    return tf.train.Feature(bytes_list=tf.train.FloatsList(value=value));
+    return tf.train.Feature(float_list=tf.train.FloatList(value=value));
 
 def _int64Feature(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value));
@@ -24,7 +26,7 @@ def writeTFRecord(u,v,w,p,shape,filename):
     return
 
 def convertBinaryToTFRecord(input_filename):
-    u,v,w,p = readBinaryDataFile(input_filename)
+    u,v,w,p = read_data(input_filename)
     shape = list(u.shape)
     
     u = u.reshape([-1])
@@ -32,14 +34,16 @@ def convertBinaryToTFRecord(input_filename):
     w = w.reshape([-1])
     p = p.reshape([-1])
     
-    output_filename = input_filename[0] + input_filename[1] + '.tfrecords'
+    output_filename = input_filename[0] + "{:06d}".format(input_filename[1]) + '.tfrecord'
 
     writeTFRecord(u,v,w,p,shape,output_filename)
     
     return
     
-def binaryToTFRecord(input_filename_list):
-    for input_filename in input_filename_list:
-        convertBinaryToTFRecordFile(input_filename)
+def binaryToTFRecord(input_filename_list, verbose=True):
+    for i, input_filename in enumerate(input_filename_list):
+        if verbose:
+            print( "Processing file {} of {}".format(i+1, len(input_filename_list)) )
+        convertBinaryToTFRecord(input_filename)
         
     return
