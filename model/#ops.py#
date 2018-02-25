@@ -51,17 +51,23 @@ def conv3d_withPeriodicPadding(inpt, filtr, strides, name=None):
     
     return output
 
-def conv3d(inpt, f, output_channels, s, scope, name=None):
-    inpt_shape = inpt.get_shape().as_list()
-    with tf.variable_scope(scope):
-        filtr = tf.get_variable(initializer=tf.contrib.layers.xavier_initializer(), shape=[f,f,f,inpt_shape[-1],output_channels],name='filtr' )
-    
-    strides = [1,s,s,s,1]
-    output = conv3d_withPeriodicPadding(inpt,filtr,strides,name)
-    
-    return output
 
+def conv3d_withPeriodicPadding(inpt, filtr, strides, name=None):
+        inpt_shape = inpt.get_shape().as_list()
+            filtr_shape = filtr.get_shape().as_list()
+                pad = []
 
+                    for i_dim in range(3):
+                                padL = int(0.5*((inpt_shape[i_dim+1]-1)*strides[i_dim+1] + filtr_shape[i_dim] - inpt_shape[i_dim+1]))
+                                padR = padL
+                                        pad_idim = (padL,padR)
+                                                pad.append(pad_idim)
+
+                                                    inpt_pad = periodic_padding(inpt, pad)
+                                                        output = tf.nn.conv3d(inpt_pad, filtr, strides, padding = 'VALID', data_format = 'NDHWC', name=name)
+
+                                                            return output
+                                                        
 if __name__ == "__main__":
     import numpy as np
     
