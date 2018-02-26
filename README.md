@@ -19,6 +19,9 @@ We will generate our own data set using an in-house simulation code (PadeOps). T
 ### Methodology
 We will use GANs[[2]](https://arxiv.org/pdf/1406.2661.pdf) in a fashion similar to super-resolution applications for image data [[3]](https://arxiv.org/pdf/1609.04802.pdf). We will also include the physics realizability constraint through a term in the loss function similar to the physics informed deep learning method in [[4]](https://arxiv.org/pdf/1711.10561.pdf).
 
+Preliminary ResNet:
+![Preliminary ResNet](NN.png "Preliminary ResNet")
+
 ### References
 [1] Chan, Shing, and Ahmed H. Elsheikh. "Parametrization and Generation of Geological Models with Generative Adversarial Networks." arXiv preprint arXiv:1708.01810 (2017).
 
