@@ -22,6 +22,11 @@ We are using GANs[[2]](https://arxiv.org/pdf/1406.2661.pdf) in a fashion similar
 Preliminary ResNet:
 ![Preliminary ResNet](figures/NN.png "Preliminary ResNet")
 
+### Current work
+We first start by training the generator netowrk without adversarial component using TEResNet. Its architechture is similar to SRResnet but with 4 ResNet blocks for the intial ease of testing and compute time. This will be extended and tested with deeper network of up to 16 ResNet blocks in the future and use the resulting weights to initialize the generator network of TEGAN. MSE-based content loss between the output high resolution flow solution and the input low resolution is used to train the network. The arhitechture of the TEResNet is shown in Figure 1.
+
+To train the network, we use 20 train and 5 test set flow solutions in a 64x64x64 block. Variation of MSE loss with iteratios are shown in Fig...
+
 ### Plan
 In chronological order we plan to do the following for the completion of our project:
 1. Implement the discriminator network with architecture similar to that in [[3]](https://arxiv.org/pdf/1609.04802.pdf).
