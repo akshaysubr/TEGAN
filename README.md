@@ -36,6 +36,7 @@ ResNet for Turbulence Enrichment:
 We first start by training the generator netowrk without adversarial component using TEResNet. Its architechture is similar to SRResnet but with 4 ResNet blocks for the intial ease of testing and compute time. This will be extended and tested with deeper network of up to 16 ResNet blocks in the future and use the resulting weights to initialize the generator network of TEGAN. MSE-based content loss between the output high resolution flow solution and the input low resolution is used to train the network. The arhitechture of the TEResNet is shown in Figure 1.
 
 To train the network, we use 20 train and 5 test set flow solutions in a 64x64x64 block. Variation of MSE loss with iteratios are shown below
+
 ![loss](figures/content_loss.png "loss")
 
 ### Plan
