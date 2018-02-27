@@ -67,6 +67,25 @@ def batchnorm(inputs, is_training):
                            scale=False,fused=True,is_training=is_training)
 
 
+def print_configuration_op(FLAGS):
+    print('[Configurations]:')
+    a = FLAGS.mode
+    #pdb.set_trace()
+    for name, value in FLAGS.__flags.items():
+        if type(value) == float:
+            print('\t%s: %f'%(name, value))
+        elif type(value) == int:
+            print('\t%s: %d'%(name, value))
+        elif type(value) == str:
+            print('\t%s: %s'%(name, value))
+        elif type(value) == bool:
+            print('\t%s: %s'%(name, value))
+        else:
+            print('\t%s: %s' % (name, value))
+
+    print('End of configuration')
+
+                                   
 def phaseShift(inputs, shape_1, shape_2):
     # Tackle the condition when the batch is None
     X = tf.reshape(inputs, shape_1)
