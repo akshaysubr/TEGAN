@@ -43,7 +43,7 @@ if FLAGS.mode == 'train':
                 loss, step, train = net.optimize(sess)
 
                 with open('log.dat', 'a') as f:
-                    f.write('%06d %26.16e' %(step, loss))
+                    f.write('%06d %26.16e\n' %(step, loss))
             except tf.errors.OutOfRangeError:
                 # training terminated
                 break
