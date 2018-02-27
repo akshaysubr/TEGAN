@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
@@ -121,7 +122,8 @@ def phaseShift(inputs, shape_1, shape_2):
 
 # The implementation of PixelShuffler
 def pixelShuffler(inputs, scale=2):
-    size = tf.shape(inputs)
+    # size = tf.shape(inputs)
+    size = inputs.get_shape().as_list()
     batch_size = size[0]
     d = size[1]
     h = size[2]
