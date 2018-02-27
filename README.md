@@ -23,7 +23,7 @@ The data was generated using an in-house fluid flow simulation code (PadeOps) wh
 Comparison of the high-resolution (top) and low resolution (bottom) data:
 ![Data](figures/HIT_064_compare.png "Data")
 
-Comparison of the power spectral density of the high-resolution and low-resolution data:
+Comparison of the power spectral density of the high-resolution (blue) and low-resolution (orange) data:
 ![Spectra](figures/HIT_064_spectra.svg "Spectra")
 
 ### Methodology
@@ -56,6 +56,8 @@ In chronological order we plan to do the following for the completion of our pro
 [3] Ledig, Christian, et al. "Photo-realistic single image super-resolution using a generative adversarial network." arXiv preprint (2016).
 
 [4] Raissi, Maziar, Paris Perdikaris, and George Em Karniadakis. "Physics Informed Deep Learning (Part I): Data-driven Solutions of Nonlinear Partial Differential Equations." arXiv preprint arXiv:1711.10561 (2017).
+
+[5] Arjovsky, Martin, Soumith Chintala, and Léon Bottou. "Wasserstein GAN." arXiv preprint arXiv:1701.07875 (2017)
 
 ### Evaluation
 To evaluate our results quantitatively, we will quantify energy spectra, statistical moments and physical realizability errors. We will also plot the generated flow data and compare qualitatively to the high-resolution ground truth.
