@@ -17,6 +17,7 @@ def periodic_padding(inpt, pad):
     return inpt_pad
 
 def conv3d_withPeriodicPadding(inpt, filtr, strides, name=None):
+    ### Does not work for large strides ###
     inpt_shape = inpt.get_shape().as_list()
     filtr_shape = filtr.get_shape().as_list()
     pad = []
@@ -48,6 +49,30 @@ def conv3d(inpt, f, output_channels, s, use_bias=False, scope='conv', name=None)
             bias = tf.get_variable(intializer=tf.zeros_initializer(
                 [1,1,1,1,output_channels],dtype=tf.float32),name='bias')
             output = output + bias;
+    
+    return output
+
+def filter3d(inpt, scope='filter', name=None):
+    inpt_shape = inpt.get_shape().as_list()
+    with tf.variable_scope(scope):
+        filter1D = tf.constant([0.04997364, 0.13638498, 0.20002636, 0.22723004, 0.20002636, 0.13638498, 0.04997364], dtype=tf.float32)
+        filter1Dx = tf.reshape(filter1D, shape=(-1,1,1))
+        filter1Dy = tf.reshape(filter1D, shape=(1,-1,1))
+        filter1Dz = tf.reshape(filter1D, shape=(1,1,-1))
+        filter3D = filter1Dx * filter1Dy * filter1Dz # Tensor product 3D filter using broadcasting
+
+        filter3D = tf.expand_dims(filter3D, axis=3)
+        zero = tf.constant( np.zeros((7,7,7,1), dtype=np.float32) )
+        filter3Du = tf.concat( [filter3D, zero, zero, zero], axis=3 )
+        filter3Dv = tf.concat( [zero, filter3D, zero, zero], axis=3 )
+        filter3Dw = tf.concat( [zero, zero, filter3D, zero], axis=3 )
+        filter3Dp = tf.concat( [zero, zero, zero, filter3D], axis=3 )
+        filter3D = tf.stack( [filter3Du, filter3Dv, filter3Dw, filter3Dp], axis=4, name='filter' )
+
+    strides = [1,4,4,4,1]
+    inpt_pad = periodic_padding( inpt, ((3,3),(3,3),(3,3)) )
+    output = tf.nn.conv3d(inpt_pad, filter3D, strides, padding = 'VALID',
+                          data_format = 'NDHWC', name=name)
     
     return output
 
@@ -155,3 +180,16 @@ if __name__ == "__main__":
 
     print(xups[0,:,:,0,0])
     print(xups.shape)
+
+
+    HR = tf.placeholder(tf.float32, shape=(2,16,16,16,4))
+    LR = filter3d(HR)
+
+    with tf.Session() as sess:
+        hr = np.zeros( (2,16,16,16,4), dtype=np.float32 )
+        for i in range(4):
+            hr[:,:,:,:,i] = i
+
+        lr = sess.run(LR, feed_dict={HR: hr} )
+        print(lr[0,:,:,:,3])
+        print(lr.shape)
