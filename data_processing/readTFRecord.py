@@ -49,31 +49,19 @@ if __name__ == "__main__":
     from hitDataTools import read_data
 
     directory = '/farmshare/user_data/akshays/TEGAN/Data'
-    filenames = [directory + '/Run01_001000.tfrecord']*2
+    filenames = [directory + '/Run01_001000.tfrecord']*16
     print(filenames)
 
     dataset = tf.data.TFRecordDataset(filenames)
     dataset = dataset.map(parseTFRecordExample)
-    iterator = dataset.make_one_shot_iterator()
+    batched_dataset = dataset.batch(4)
+    iterator = batched_dataset.make_one_shot_iterator()
 
     next_element = iterator.get_next()
 
-    L = next_element[:2,:,:,:]
-    R = next_element[-2:,:,:,:]
-    next_element_pad = tf.concat([R, next_element, L], axis=0)
-
-    L = next_element_pad[:,:2,:,:]
-    R = next_element_pad[:,-2:,:,:]
-    next_element_pad = tf.concat([R, next_element_pad, L], axis=1)
-
-    L = next_element_pad[:,:,:2,:]
-    R = next_element_pad[:,:,-2:,:]
-    next_element_pad = tf.concat([R, next_element_pad, L], axis=2)
-
     with tf.Session() as sess:
-        ne, nep = sess.run([next_element, next_element_pad])
+        ne, = sess.run([next_element])
         print("next_element:     ", ne.shape)
-        print("next_element_pad: ", nep.shape)
 
     u, v, w, p = read_data( (directory + '/Run01_', 1000) )
     u_rms = np.sqrt( (u*u + v*v + w*w).mean() )
@@ -82,14 +70,8 @@ if __name__ == "__main__":
     w = w / u_rms
     p = p / (u_rms * u_rms)
 
-    element = np.stack([u, v, w, p], axis=3)
-    element = np.pad(element, [(2,2), (2,2), (2,2), (0,0)], mode='wrap')
-
-    print("Error in u = {}".format( np.absolute(u - ne[:,:,:,0]).max() ))
-    print("Error in v = {}".format( np.absolute(v - ne[:,:,:,1]).max() ))
-    print("Error in w = {}".format( np.absolute(w - ne[:,:,:,2]).max() ))
-    print("Error in p = {}".format( np.absolute(p - ne[:,:,:,3]).max() ))
-
-    print("Error in padding = {}".format( np.absolute(element - nep).max() ))
-
+    print("Error in u = {}".format( np.absolute(u - ne[0,:,:,:,0]).max() ))
+    print("Error in v = {}".format( np.absolute(v - ne[0,:,:,:,1]).max() ))
+    print("Error in w = {}".format( np.absolute(w - ne[0,:,:,:,2]).max() ))
+    print("Error in p = {}".format( np.absolute(p - ne[0,:,:,:,3]).max() ))
 
