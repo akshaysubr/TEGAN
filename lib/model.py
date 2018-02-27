@@ -1,3 +1,6 @@
+import tensorflow as tf
+from lib.readTFRecord import parseTFRecordExample 
+
 # Definition of the generator
 def generator(gen_inputs, gen_output_channels, reuse=False, FLAGS=None):
     # Check the flag
@@ -52,12 +55,25 @@ def generator(gen_inputs, gen_output_channels, reuse=False, FLAGS=None):
 
 class TEResNet(object):
 
-    def __init__(self, inputs, targets, FLAGS):
+    def __init__(self, filenames_HR, FLAGS):
+
+        self.filenames_HR = filenames_HR
+
+        self.dataset = tf.data.TFRecordDataset(self.filenames_HR)
+        self.dataset = self.dataset.map(parseTFRecordExample)
+        self.dataset = self.dataset.shuffle(buffer_size=10000)
+        self.dataset = self.dataset.batch(FLAGS.batch_size)
+        self.dataset = self.dataset.repeat(FLAGS.max_epoch)
+
+        self.iterator = self.dataset.make_one_shot_iterator()
+    
+        next_batch_HR = self.iterator.get_next()
+        next_batch_LR = ops.filter3d(next_batch_HR)
 
         # Build the generator part
         with tf.variable_scope('generator'):
-            self.output_channels = targets.get_shape().as_list()[-1]
-            self.gen_output = generator(inputs, self.output_channels, reuse=False, FLAGS=FLAGS)
+            self.output_channels = next_batch_HR.get_shape().as_list()[-1]
+            self.gen_output = generator(next_batch_LR, self.output_channels, reuse=False, FLAGS=FLAGS)
             # self.gen_output.set_shape([FLAGS.batch_size, FLAGS.input_size * 4, FLAGS.input_size * 4, FLAGS.input_size * 4, 4])
 
 
@@ -67,7 +83,7 @@ class TEResNet(object):
             # Content loss
             with tf.variable_scope('content_loss'):
                 # Compute the euclidean distance between the two features
-                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - targets) )
+                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - next_batch_HR) )
 
             self.gen_loss = self.content_loss
 
@@ -90,6 +106,8 @@ class TEResNet(object):
 
         exp_averager = tf.train.ExponentialMovingAverage(decay=0.99)
         self.update_loss = exp_averager.apply([self.content_loss])
+
+    def initialize_weights(self, session):
 
 
     def optimize(self, session):
