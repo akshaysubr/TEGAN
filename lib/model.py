@@ -74,18 +74,18 @@ class TEResNet(object):
 
         self.iterator = self.dataset.make_one_shot_iterator()
     
-        next_batch_HR = self.iterator.get_next()
-        next_batch_LR = ops.filter3d(next_batch_HR)
+        self.next_batch_HR = self.iterator.get_next()
+        self.next_batch_LR = ops.filter3d(self.next_batch_HR)
 
         # TODO: Fix batch_size not being fator of total dataset size
-        next_batch_LR.set_shape([FLAGS.batch_size, FLAGS.input_size, FLAGS.input_size, FLAGS.input_size, 4])
+        self.next_batch_LR.set_shape([FLAGS.batch_size, FLAGS.input_size, FLAGS.input_size, FLAGS.input_size, 4])
 
         self.FLAGS = FLAGS
 
         # Build the generator part
         with tf.variable_scope('generator'):
-            self.output_channels = next_batch_HR.get_shape().as_list()[-1]
-            self.gen_output = generator(next_batch_LR, self.output_channels, reuse=False, FLAGS=FLAGS)
+            self.output_channels = self.next_batch_HR.get_shape().as_list()[-1]
+            self.gen_output = generator(self.next_batch_LR, self.output_channels, reuse=False, FLAGS=FLAGS)
             # self.gen_output.set_shape([FLAGS.batch_size, FLAGS.input_size * 4, FLAGS.input_size * 4, FLAGS.input_size * 4, 4])
 
 
@@ -95,7 +95,7 @@ class TEResNet(object):
             # Content loss
             with tf.variable_scope('content_loss'):
                 # Compute the euclidean distance between the two features
-                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - next_batch_HR) )
+                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) )
 
             self.gen_loss = self.content_loss
 
@@ -149,6 +149,6 @@ class TEResNet(object):
 
 
     def evaluate(self, session):
-        return session.run( (self.gen_output, self.gen_loss) )
+        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss) )
 
 
