@@ -4,7 +4,7 @@ import h5py
 import tensorflow as tf
 
 from lib.defaultFlags import defaultFlags
-from lib.model import TEResNet
+from lib.model import TEResNet, TEGAN
 from lib.ops import print_configuration_op
 from lib.readTFRecord import getTFRecordFilenamesIn 
 
@@ -21,34 +21,27 @@ if FLAGS.output_dir is None:
 if not os.path.exists(FLAGS.output_dir):
     os.mkdir(FLAGS.output_dir)
 
+# Check the summary_dir is given
+if FLAGS.summary_dir is None:
+    raise ValueError('The summary directory is needed')
+
 # Check the summary directory to save the event
-# if not os.path.exists(FLAGS.summary_dir):
-#     os.mkdir(FLAGS.summary_dir)
+if not os.path.exists(FLAGS.summary_dir):
+    os.mkdir(FLAGS.summary_dir)
 
 filenames_HR = getTFRecordFilenamesIn(FLAGS.input_dir_HR)
 print("Using files: ", filenames_HR)
 if len(filenames_HR) % FLAGS.batch_size != 0:
-    print("You have been warned!!! Tread with CAUTION!!!")
+    raise RuntimeError("Tread with CAUTION! Training dataset size is not a multiple of batch_size")
 
-net = TEResNet(filenames_HR, FLAGS)
+net = TEGAN(filenames_HR, FLAGS)
 
 with tf.Session() as sess:
     net.initialize(sess)
     print("Finished initializing :D")
 
     if FLAGS.mode == 'train':
-
-        for i in range(FLAGS.max_iter):
-            try:
-                loss, step, train = net.optimize(sess)
-
-                with open('log.dat', 'a') as f:
-                    f.write('%06d %26.16e\n' %(step, loss))
-            except tf.errors.OutOfRangeError:
-                # training terminated
-                break
-
-            print("Iteration {}: update loss = {}".format(i, loss))
+        net.optimize(sess)
 
     elif FLAGS.mode == 'test':
         HR, LR, HR_out, loss = net.evaluate(sess)

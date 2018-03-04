@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
+
 def periodic_padding(inpt, pad):
     L = inpt[:,:pad[0][0],:,:,:]
     R = inpt[:,-pad[0][1]:,:,:,:]
@@ -17,6 +18,7 @@ def periodic_padding(inpt, pad):
     
     return inpt_pad
 
+
 def conv3d_withPeriodicPadding(inpt, filtr, strides, name=None):
     ### Does not work for large strides ###
     inpt_shape = inpt.get_shape().as_list()
@@ -24,8 +26,8 @@ def conv3d_withPeriodicPadding(inpt, filtr, strides, name=None):
     pad = []
     
     for i_dim in range(3):
-        padL = int(0.5*((inpt_shape[i_dim+1]-1)*strides[i_dim+1]
-                        + filtr_shape[i_dim] - inpt_shape[i_dim+1]))
+        # Compute pad assuming output_size = input_size / stride and odd filter sizes
+        padL = int( 0.5*(filtr_shape[i_dim] - 1) )
         padR = padL
         pad_idim = (padL,padR)
         pad.append(pad_idim)      
@@ -35,6 +37,7 @@ def conv3d_withPeriodicPadding(inpt, filtr, strides, name=None):
                           data_format = 'NDHWC', name=name)
     
     return output
+
 
 def conv3d(inpt, f, output_channels, s, use_bias=False, scope='conv', name=None):
     inpt_shape = inpt.get_shape().as_list()
@@ -52,6 +55,7 @@ def conv3d(inpt, f, output_channels, s, use_bias=False, scope='conv', name=None)
             output = output + bias;
     
     return output
+
 
 def filter3d(inpt, scope='filter', name=None):
     inpt_shape = inpt.get_shape().as_list()
@@ -77,6 +81,7 @@ def filter3d(inpt, scope='filter', name=None):
     
     return output
 
+
 def prelu_tf(inputs, name='Prelu'):
     with tf.variable_scope(name):
         alphas = tf.get_variable('alpha',inputs.get_shape()[-1],
@@ -85,6 +90,15 @@ def prelu_tf(inputs, name='Prelu'):
     neg = alphas * (inputs - abs(inputs)) * 0.5
 
     return pos + neg
+
+
+def lrelu(inputs, alpha):
+    return tf.keras.layers.LeakyReLU(alpha=alpha).call(inputs)
+
+
+def denselayer(inputs, output_size):
+    output = tf.layers.dense(inputs, output_size, activation=None, kernel_initializer=tf.contrib.layers.xavier_initializer())
+    return output
 
 
 def batchnorm(inputs, is_training):
