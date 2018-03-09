@@ -24,26 +24,26 @@ with open(logfile, 'r') as flog:
 
 # Plot the discriminant and generator losses
 
-fig, ax1 = plt.subplots()
-
-ax1.plot(steps, loss_d, 'b-')
-ax1.set_xlabel('iteration')
-# Make the y-axis label, ticks and tick labels match the line color.
-ax1.set_ylabel('Discriminant loss', color='b')
-ax1.tick_params('y', colors='b')
-
-ax2 = ax1.twinx()
-ax2.plot(steps, loss_g, 'r-')
-ax2.set_ylabel('Generator loss', color='r')
-ax2.tick_params('y', colors='r')
-
-# fig = plt.figure()
+# fig, ax1 = plt.subplots()
 # 
-# plt.plot(steps, loss_d, 'b-', label='Discriminator')
-# plt.plot(steps, loss_g, 'r-', label='Generator')
-# plt.xlabel('iterations')
-# plt.ylabel('loss')
-# plt.legend()
+# ax1.plot(steps, loss_d, 'b-')
+# ax1.set_xlabel('iteration')
+# # Make the y-axis label, ticks and tick labels match the line color.
+# ax1.set_ylabel('Discriminant loss', color='b')
+# ax1.tick_params('y', colors='b')
+# 
+# ax2 = ax1.twinx()
+# ax2.plot(steps, loss_g, 'r-')
+# ax2.set_ylabel('Generator loss', color='r')
+# ax2.tick_params('y', colors='r')
+
+fig = plt.figure()
+
+plt.semilogy(steps, loss_d, 'b-', label='Discriminator')
+plt.semilogy(steps, loss_g, 'r-', label='Generator')
+plt.xlabel('iterations')
+plt.ylabel('loss')
+plt.legend()
 
 fig.tight_layout()
 plt.show()

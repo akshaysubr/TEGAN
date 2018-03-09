@@ -6,6 +6,7 @@ def defaultFlags():
     # The system parameter
     Flags.DEFINE_string('output_dir', '/farmshare/user_data/akshays/TEGAN/output', 'The output directory of the checkpoint')
     Flags.DEFINE_string('summary_dir', '/farmshare/user_data/akshays/TEGAN/summary', 'The dirctory to output the summary')
+    Flags.DEFINE_string('log_file', 'log.dat', 'File to write the logs to')
     Flags.DEFINE_string('mode', 'train', 'The mode of the model train, test.')
     Flags.DEFINE_string('checkpoint', None, 'If provided, the weight will be restored from the provided checkpoint')
     Flags.DEFINE_boolean('pre_trained_generator', False, 'If set True, the weight will be loaded but the global_step will still '

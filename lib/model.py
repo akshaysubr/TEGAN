@@ -339,35 +339,35 @@ class TEGAN(object):
         if self.FLAGS.mode != 'train':
             raise RuntimeError("Cannot optimize if not in train mode!!!")
 
-        with open('log.dat', 'a') as f:
+        for i in range(self.FLAGS.max_iter):
+            try:
+                if ( (i+1) % self.FLAGS.gen_freq) == 0:
+                    d_loss, g_loss, train, step, merged = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) )
 
-            for i in range(self.FLAGS.max_iter):
-                try:
-                    if ( (i+1) % self.FLAGS.gen_freq) == 0:
-                        d_loss, g_loss, train, step, merged = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) )
-
+                    with open(self.FLAGS.log_file, 'a') as f:
                         f.write('%06d %26.16e %26.16e\n' %(step, d_loss, g_loss))
-                        print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
+                        f.flush()
+                    print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
 
-                        self.summary_writer.add_summary(merged, step)
-                    else:
-                        d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step) )
-                        print("Iteration {}: discriminator loss = {}".format(i, d_loss))
+                    self.summary_writer.add_summary(merged, step)
+                else:
+                    d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step) )
+                    print("Iteration {}: discriminator loss = {}".format(i, d_loss))
 
-                except tf.errors.OutOfRangeError:
-                    # training terminated
-                    print("Finished training!")
-                    break
+            except tf.errors.OutOfRangeError:
+                # training terminated
+                print("Finished training!")
+                break
 
 
-                # Save after every save_freq iterations
-                if (step % 10) == 0:
-                    print("Saving weights to {}".format(os.path.join(self.FLAGS.output_dir, 'TEGAN')))
-                    self.saver.save(session, os.path.join(self.FLAGS.output_dir, 'TEGAN'), global_step=step)
+            # Save after every save_freq iterations
+            if (step % 10) == 0:
+                print("Saving weights to {}".format(os.path.join(self.FLAGS.output_dir, 'TEGAN')))
+                self.saver.save(session, os.path.join(self.FLAGS.output_dir, 'TEGAN'), global_step=step)
 
         return results
 
 
     def evaluate(self, session):
-        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss ) )
+        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss, self.discrim_loss ) )
 

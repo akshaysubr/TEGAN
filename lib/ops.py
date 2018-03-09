@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -5,15 +6,24 @@ import tensorflow.contrib.slim as slim
 
 def periodic_padding(inpt, pad):
     L = inpt[:,:pad[0][0],:,:,:]
-    R = inpt[:,-pad[0][1]:,:,:,:]
+    if pad[0][1] > 0:
+        R = inpt[:,-pad[0][1]:,:,:,:]
+    else:
+        R = inpt[:,:0,:,:,:]
     inpt_pad = tf.concat([R, inpt, L], axis=1)
     
     L = inpt_pad[:,:,:pad[1][0],:,:]
-    R = inpt_pad[:,:,-pad[1][1]:,:,:]
+    if pad[1][1] > 0:
+        R = inpt_pad[:,:,-pad[1][1]:,:,:]
+    else:
+        R = inpt_pad[:,:,:0,:,:]
     inpt_pad = tf.concat([R, inpt_pad, L], axis=2)
     
     L = inpt_pad[:,:,:,:pad[2][0],:]
-    R = inpt_pad[:,:,:,-pad[2][1]:,:]
+    if pad[2][1] > 0:
+        R = inpt_pad[:,:,:,-pad[2][1]:,:]
+    else:
+        R = inpt_pad[:,:,:,:0,:]
     inpt_pad = tf.concat([R, inpt_pad, L], axis=3)
     
     return inpt_pad
@@ -78,6 +88,108 @@ def filter3d(inpt, scope='filter', name=None):
     inpt_pad = periodic_padding( inpt, ((3,3),(3,3),(3,3)) )
     output = tf.nn.conv3d(inpt_pad, filter3D, strides, padding = 'VALID',
                           data_format = 'NDHWC', name=name)
+    
+    return output
+
+
+def ddx(inpt, channel, dx, scope='ddx', name=None):
+    inpt_shape = inpt.get_shape().as_list()
+    var = tf.expand_dims( inpt[:,:,:,:,channel], axis=4 )
+
+    with tf.variable_scope(scope):
+        ddx1D = tf.constant([-1./60., 3./20., -3./4., 0., 3./4., -3./20., 1./60.], dtype=tf.float32)
+        ddx3D = tf.reshape(ddx1D, shape=(-1,1,1,1,1))
+
+    strides = [1,1,1,1,1]
+    var_pad = periodic_padding( var, ((3,3),(0,0),(0,0)) )
+    output = tf.nn.conv3d(var_pad, ddx3D, strides, padding = 'VALID',
+                          data_format = 'NDHWC', name=name)
+    output = tf.scalar_mul(1./dx, output)
+    
+    return output
+
+
+def ddy(inpt, channel, dy, scope='ddy', name=None):
+    inpt_shape = inpt.get_shape().as_list()
+    var = tf.expand_dims( inpt[:,:,:,:,channel], axis=4 )
+
+    with tf.variable_scope(scope):
+        ddy1D = tf.constant([-1./60., 3./20., -3./4., 0., 3./4., -3./20., 1./60.], dtype=tf.float32)
+        ddy3D = tf.reshape(ddy1D, shape=(1,-1,1,1,1))
+
+    strides = [1,1,1,1,1]
+    var_pad = periodic_padding( var, ((0,0),(3,3),(0,0)) )
+    output = tf.nn.conv3d(var_pad, ddy3D, strides, padding = 'VALID',
+                          data_format = 'NDHWC', name=name)
+    output = tf.scalar_mul(1./dy, output)
+    
+    return output
+
+
+def ddz(inpt, channel, dz, scope='ddz', name=None):
+    inpt_shape = inpt.get_shape().as_list()
+    var = tf.expand_dims( inpt[:,:,:,:,channel], axis=4 )
+
+    with tf.variable_scope(scope):
+        ddz1D = tf.constant([-1./60., 3./20., -3./4., 0., 3./4., -3./20., 1./60.], dtype=tf.float32)
+        ddz3D = tf.reshape(ddz1D, shape=(1,1,-1,1,1))
+
+    strides = [1,1,1,1,1]
+    var_pad = periodic_padding( var, ((0,0),(0,0),(3,3)) )
+    output = tf.nn.conv3d(var_pad, ddz3D, strides, padding = 'VALID',
+                          data_format = 'NDHWC', name=name)
+    output = tf.scalar_mul(1./dz, output)
+    
+    return output
+
+
+def d2dx2(inpt, channel, dx, scope='d2dx2', name=None):
+    inpt_shape = inpt.get_shape().as_list()
+    var = tf.expand_dims( inpt[:,:,:,:,channel], axis=4 )
+
+    with tf.variable_scope(scope):
+        ddx1D = tf.constant([1./90., -3./20., 3./2., -49./18., 3./2., -3./20., 1./90.], dtype=tf.float32)
+        ddx3D = tf.reshape(ddx1D, shape=(-1,1,1,1,1))
+
+    strides = [1,1,1,1,1]
+    var_pad = periodic_padding( var, ((3,3),(0,0),(0,0)) )
+    output = tf.nn.conv3d(var_pad, ddx3D, strides, padding = 'VALID',
+                          data_format = 'NDHWC', name=name)
+    output = tf.scalar_mul(1./dx**2, output)
+    
+    return output
+
+
+def d2dy2(inpt, channel, dy, scope='d2dy2', name=None):
+    inpt_shape = inpt.get_shape().as_list()
+    var = tf.expand_dims( inpt[:,:,:,:,channel], axis=4 )
+
+    with tf.variable_scope(scope):
+        ddy1D = tf.constant([1./90., -3./20., 3./2., -49./18., 3./2., -3./20., 1./90.], dtype=tf.float32)
+        ddy3D = tf.reshape(ddy1D, shape=(1,-1,1,1,1))
+
+    strides = [1,1,1,1,1]
+    var_pad = periodic_padding( var, ((0,0),(3,3),(0,0)) )
+    output = tf.nn.conv3d(var_pad, ddy3D, strides, padding = 'VALID',
+                          data_format = 'NDHWC', name=name)
+    output = tf.scalar_mul(1./dy**2, output)
+    
+    return output
+
+
+def d2dz2(inpt, channel, dz, scope='d2dz2', name=None):
+    inpt_shape = inpt.get_shape().as_list()
+    var = tf.expand_dims( inpt[:,:,:,:,channel], axis=4 )
+
+    with tf.variable_scope(scope):
+        ddz1D = tf.constant([1./90., -3./20., 3./2., -49./18., 3./2., -3./20., 1./90.], dtype=tf.float32)
+        ddz3D = tf.reshape(ddz1D, shape=(1,1,-1,1,1))
+
+    strides = [1,1,1,1,1]
+    var_pad = periodic_padding( var, ((0,0),(0,0),(3,3)) )
+    output = tf.nn.conv3d(var_pad, ddz3D, strides, padding = 'VALID',
+                          data_format = 'NDHWC', name=name)
+    output = tf.scalar_mul(1./dz**2, output)
     
     return output
 
@@ -158,7 +270,61 @@ def pixelShuffler(inputs, scale=2):
     return output
 
 
+def convert_to_rgba(a, vmin, vmax,  cmap=plt.cm.viridis):
+    rgba = cmap( (a - vmin)/(vmax - vmin) )
+    return rgba
+
+
+def get_slice_images(HR, LR, out, n_images=1):
+
+    batch_size, nx, ny, nz, nvars = HR.shape
+
+    grid_size = [nx, ny, nz]
+    images = []
+
+    for i in range(n_images):
+        batch = np.random.randint(batch_size, size=1)[0]
+        var   = np.random.randint(nvars-1, size=1)[0]
+        plane = np.random.randint(3, size=1)[0]
+        index = np.random.randint(grid_size[plane]//4, size=1)[0]
+        print("batch = {}, var = {}, plane = {}, index = {}".format(batch, var, plane, index))
+
+        if plane == 0:
+            var_HR  =  HR[batch, index*4, :, :, var]
+            var_LR  =  LR[batch, index,   :, :, var]
+            var_out = out[batch, index*4, :, :, var]
+        elif plane == 1:
+            var_HR  =  HR[batch, :, index*4, :, var]
+            var_LR  =  LR[batch, :, index,   :, var]
+            var_out = out[batch, :, index*4, :, var]
+        elif plane == 2:
+            var_HR  =  HR[batch,  :, :,index*4, var]
+            var_LR  =  LR[batch,  :, :,index,   var]
+            var_out = out[batch,  :, :,index*4, var]
+        else:
+            raise ValueError('Plane has to be 0, 1 or 2. Given {}'.format(plane))
+
+        vmin = var_HR.min() - 1.e-10
+        vmax = var_HR.max() + 1.e-10
+
+        # Repeat values to make it 64^3
+        var_LR = np.repeat(var_LR, 4, axis=0)
+        var_LR = np.repeat(var_LR, 4, axis=1)
+
+        im_HR  = convert_to_rgba(var_HR,  vmin, vmax)
+        im_LR  = convert_to_rgba(var_LR,  vmin, vmax)
+        im_out = convert_to_rgba(var_out, vmin, vmax)
+
+        im = np.concatenate((im_HR, im_LR, im_out), axis=1)
+
+        images.append( im )
+
+    return np.stack(images, axis=0)
+
+
+
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     import numpy as np
     
     # Check if derivatives are correct with periodic padding
@@ -209,3 +375,71 @@ if __name__ == "__main__":
         lr = sess.run(LR, feed_dict={HR: hr} )
         print(lr[0,:,:,:,3])
         print(lr.shape)
+
+
+    var = tf.placeholder(tf.float32, shape=(2,16,16,16,4))
+    dudx =  ddx(var, 0, 2.*np.pi/16.)
+    dudy =  ddy(var, 0, 2.*np.pi/16.)
+    dudz =  ddz(var, 0, 2.*np.pi/16.)
+    d2udx2 =  d2dx2(var, 0, 2.*np.pi/16.)
+    d2udy2 =  d2dy2(var, 0, 2.*np.pi/16.)
+    d2udz2 =  d2dz2(var, 0, 2.*np.pi/16.)
+
+    with tf.Session() as sess:
+        x = np.linspace(0,2.*np.pi,num=16+1)[:-1].reshape((16,1,1)).repeat(16, axis=1).repeat(16, axis=2)
+        y = np.linspace(0,2.*np.pi,num=16+1)[:-1].reshape((1,16,1)).repeat(16, axis=0).repeat(16, axis=2)
+        z = np.linspace(0,2.*np.pi,num=16+1)[:-1].reshape((1,1,16)).repeat(16, axis=0).repeat(16, axis=1)
+
+        v = np.zeros( (2,16,16,16,4) )
+        v[0,:,:,:,0] = np.sin(x)
+        v[1,:,:,:,0] = np.cos(x)
+
+        dv = np.zeros( (2,16,16,16,1) )
+        dv[0,:,:,:,0] = np.cos(x)
+        dv[1,:,:,:,0] = -np.sin(x)
+
+        dv2 = np.zeros( (2,16,16,16,1) )
+        dv2[0,:,:,:,0] = -np.sin(x)
+        dv2[1,:,:,:,0] = -np.cos(x)
+
+        du, du2 = sess.run( [dudx, d2udx2], feed_dict={var: v})
+        print(du.shape)
+        print("Max X derivative error = {}".format( np.absolute(du-dv).max()))
+        print("Max X 2nd derivative error = {}".format( np.absolute(du2-dv2).max()))
+
+        v[0,:,:,:,0] = np.sin(y)
+        v[1,:,:,:,0] = np.cos(y)
+
+        dv[0,:,:,:,0] = np.cos(y)
+        dv[1,:,:,:,0] = -np.sin(y)
+
+        dv2[0,:,:,:,0] = -np.sin(y)
+        dv2[1,:,:,:,0] = -np.cos(y)
+
+        du, du2 = sess.run( [dudy, d2udy2], feed_dict={var: v})
+        print(du.shape)
+        print("Max Y derivative error = {}".format( np.absolute(du-dv).max()))
+        print("Max Y 2nd derivative error = {}".format( np.absolute(du2-dv2).max()))
+
+        v[0,:,:,:,0] = np.sin(z)
+        v[1,:,:,:,0] = np.cos(z)
+
+        dv[0,:,:,:,0] = np.cos(z)
+        dv[1,:,:,:,0] = -np.sin(z)
+
+        dv2[0,:,:,:,0] = -np.sin(z)
+        dv2[1,:,:,:,0] = -np.cos(z)
+
+        du, du2 = sess.run( [dudz, d2udz2], feed_dict={var: v})
+        print(du.shape)
+        print("Max Z derivative error = {}".format( np.absolute(du-dv).max()))
+        print("Max Z 2nd derivative error = {}".format( np.absolute(du2-dv2).max()))
+
+
+        for i in range(4):
+            v[0,:,:,:,i] = np.sin(3*z)
+            v[1,:,:,:,i] = np.cos(3*z)
+
+        images = get_slice_images(v, v[:,::4,::4,::4,:], v, n_images=1)
+
+        print(images.shape)
