@@ -10,9 +10,6 @@ from lib.readTFRecord import getTFRecordFilenamesIn
 
 FLAGS = defaultFlags()
 
-# Print the configuration of the model
-print_configuration_op(FLAGS)
-
 # Check the output_dir is given
 if FLAGS.output_dir is None:
     raise ValueError('The output directory is needed')
