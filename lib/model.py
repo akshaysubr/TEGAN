@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import tensorflow as tf
 
@@ -272,8 +273,10 @@ class TEGAN(object):
 
             self.gen_loss = (1 - FLAGS.adversarial_ratio) * self.content_loss + (FLAGS.adversarial_ratio) * self.adversarial_loss
 
-        tf.summary.scalar('generator loss', self.gen_loss)
-
+        tf.summary.scalar('Generator loss', self.gen_loss)
+        tf.summary.scalar('Adversarial loss', self.adversarial_loss)
+        tf.summary.scalar('Content loss', self.content_loss)
+        
         # Calculating the discriminator loss
         with tf.variable_scope('discriminator_loss'):
             discrim_fake_loss = tf.log(1 - self.discrim_fake_output + FLAGS.EPS)
@@ -281,7 +284,7 @@ class TEGAN(object):
 
             self.discrim_loss = tf.reduce_mean(-(discrim_fake_loss + discrim_real_loss))
 
-        tf.summary.scalar('discriminator loss', self.discrim_loss)
+        tf.summary.scalar('Discriminator loss', self.discrim_loss)
 
         with tf.variable_scope('get_learning_rate_and_global_step'):
 
@@ -314,6 +317,10 @@ class TEGAN(object):
         self.weights_initializer_g = tf.train.Saver(gen_tvars)
 
         # Summary
+        # tf.summary.image("u-velocity", tf.convert_to_tensor( 1.0*np.random.randint(0,255,(5,64,64,3)) )  )
+        # tf.summary.image("v-velocity", tf.convert_to_tensor( 1.0*np.random.randint(0,255,(1,64,64,3)) )  )
+        # tf.summary.image("pressure"  , tf.convert_to_tensor( 1.0*np.random.randint(0,255,(1,64,64,3)) )  )
+        # self.merged_summary = tf.summary.merge([self.dloss_summary,self.gloss_summary,summary_image])
         self.merged_summary = tf.summary.merge_all()
 
     def initialize(self, session):
@@ -330,7 +337,7 @@ class TEGAN(object):
             else:
                 print("Restoring weights from {}".format(self.FLAGS.checkpoint))
                 self.saver.restore(session, self.FLAGS.checkpoint)
-
+    
         self.summary_writer = tf.summary.FileWriter( self.FLAGS.summary_dir, session.graph )
 
 
@@ -344,12 +351,18 @@ class TEGAN(object):
             for i in range(self.FLAGS.max_iter):
                 try:
                     if ( (i+1) % self.FLAGS.gen_freq) == 0:
-                        d_loss, g_loss, train, step, merged = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) )
+                        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                        run_metadata = tf.RunMetadata()
+
+                        d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) ,
+                                                                            options=run_options,
+                                                                            run_metadata=run_metadata)
 
                         f.write('%06d %26.16e %26.16e\n' %(step, d_loss, g_loss))
                         print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
 
-                        self.summary_writer.add_summary(merged, step)
+                        self.summary_writer.add_run_metadata(run_metadata, 'step%03d' % step)
+                        self.summary_writer.add_summary(summary, step)
                     else:
                         d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step) )
                         print("Iteration {}: discriminator loss = {}".format(i, d_loss))
