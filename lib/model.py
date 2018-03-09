@@ -343,10 +343,10 @@ class TEGAN(object):
         self.weights_initializer_g = tf.train.Saver(gen_tvars)
 
         # Summary
-        # tf.summary.image("u-velocity", tf.convert_to_tensor( 1.0*np.random.randint(0,255,(5,64,64,3)) )  )
-        # tf.summary.image("v-velocity", tf.convert_to_tensor( 1.0*np.random.randint(0,255,(1,64,64,3)) )  )
-        # tf.summary.image("pressure"  , tf.convert_to_tensor( 1.0*np.random.randint(0,255,(1,64,64,3)) )  )
-        # self.merged_summary = tf.summary.merge([self.dloss_summary,self.gloss_summary,summary_image])
+        tf.summary.image("High resolution", self.next_batch_HR[0:1,:,:,0,0:1]  )
+        tf.summary.image("Low resolution", self.next_batch_LR[0:1,:,:,0,0:1]  )
+        tf.summary.image("Generated", self.gen_output[0:1,:,:,0,0:1]  )
+        tf.summary.image("Concat", tf.concat( [self.next_batch_HR[0:1,:,:,0,0:1], self.gen_output[0:1,:,:,0,0:1]], axis=2 ))
         self.merged_summary = tf.summary.merge_all()
 
     def initialize(self, session):
