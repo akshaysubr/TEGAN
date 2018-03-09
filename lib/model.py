@@ -14,10 +14,12 @@ def generator(gen_inputs, gen_output_channels, reuse=False, FLAGS=None):
     def residual_block(inputs, output_channels, stride, scope):
         with tf.variable_scope(scope):
             net = ops.conv3d(inputs, 3, output_channels, stride, use_bias=False, scope='conv_1')
-            net = ops.batchnorm(net, FLAGS.is_training)
+            if (FLAGS.GAN_type == 'GAN'):
+                net = ops.batchnorm(net, FLAGS.is_training)
             net = ops.prelu_tf(net)
             net = ops.conv3d(net, 3, output_channels, stride, use_bias=False, scope='conv_2')
-            net = ops.batchnorm(net, FLAGS.is_training)
+            if (FLAGS.GAN_type == 'GAN'):
+                net = ops.batchnorm(net, FLAGS.is_training)
             net = net + inputs
         return net
 
@@ -36,7 +38,8 @@ def generator(gen_inputs, gen_output_channels, reuse=False, FLAGS=None):
 
         with tf.variable_scope('resblock_output'):
             net = ops.conv3d(net, 3, 64, 1, use_bias=False, scope='conv')
-            net = ops.batchnorm(net, FLAGS.is_training)
+            if (FLAGS.GAN_type == 'GAN'):
+                net = ops.batchnorm(net, FLAGS.is_training)
 
         net = net + stage1_output
 
@@ -66,7 +69,8 @@ def discriminator(dis_inputs, FLAGS=None):
     def discriminator_block(inputs, output_channel, kernel_size, stride, scope):
         with tf.variable_scope(scope):
             net = ops.conv3d(inputs, kernel_size, output_channel, stride, use_bias=False, scope='conv1')
-            net = ops.batchnorm(net, FLAGS.is_training)
+            if (FLAGS.GAN_type == 'GAN'):
+                net = ops.batchnorm(net, FLAGS.is_training)
             net = ops.lrelu(net, 0.2)
 
         return net
