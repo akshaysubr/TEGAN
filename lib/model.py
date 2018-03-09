@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import tensorflow as tf
 
@@ -14,10 +15,12 @@ def generator(gen_inputs, gen_output_channels, reuse=False, FLAGS=None):
     def residual_block(inputs, output_channels, stride, scope):
         with tf.variable_scope(scope):
             net = ops.conv3d(inputs, 3, output_channels, stride, use_bias=False, scope='conv_1')
-            net = ops.batchnorm(net, FLAGS.is_training)
+            if (FLAGS.GAN_type is 'GAN'):
+                net = ops.batchnorm(net, FLAGS.is_training)
             net = ops.prelu_tf(net)
             net = ops.conv3d(net, 3, output_channels, stride, use_bias=False, scope='conv_2')
-            net = ops.batchnorm(net, FLAGS.is_training)
+            if (FLAGS.GAN_type is 'GAN'):
+                net = ops.batchnorm(net, FLAGS.is_training)
             net = net + inputs
         return net
 
@@ -26,7 +29,7 @@ def generator(gen_inputs, gen_output_channels, reuse=False, FLAGS=None):
         with tf.variable_scope('input_stage'):
             net = ops.conv3d(gen_inputs, 9, 64, 1, scope='conv')
             net = ops.prelu_tf(net)
-
+    
         stage1_output = net
 
         # The residual block parts
@@ -36,7 +39,8 @@ def generator(gen_inputs, gen_output_channels, reuse=False, FLAGS=None):
 
         with tf.variable_scope('resblock_output'):
             net = ops.conv3d(net, 3, 64, 1, use_bias=False, scope='conv')
-            net = ops.batchnorm(net, FLAGS.is_training)
+            if (FLAGS.GAN_type is 'GAN'):
+                net = ops.batchnorm(net, FLAGS.is_training)
 
         net = net + stage1_output
 
@@ -66,7 +70,8 @@ def discriminator(dis_inputs, FLAGS=None):
     def discriminator_block(inputs, output_channel, kernel_size, stride, scope):
         with tf.variable_scope(scope):
             net = ops.conv3d(inputs, kernel_size, output_channel, stride, use_bias=False, scope='conv1')
-            net = ops.batchnorm(net, FLAGS.is_training)
+            if (FLAGS.GAN_type is 'GAN'):
+                net = ops.batchnorm(net, FLAGS.is_training)
             net = ops.lrelu(net, 0.2)
 
         return net
@@ -258,7 +263,6 @@ class TEGAN(object):
             with tf.variable_scope('discriminator', reuse=True):
                 self.discrim_real_output = discriminator(self.next_batch_HR, FLAGS=FLAGS)
 
-
         # Calculating the generator loss
         with tf.variable_scope('generator_loss'):
 
@@ -268,20 +272,45 @@ class TEGAN(object):
                 self.content_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) )
 
             with tf.variable_scope('adversarial_loss'):
-                self.adversarial_loss = tf.reduce_mean(-tf.log(self.discrim_fake_output + FLAGS.EPS))
+                if (FLAGS.GAN_type is 'GAN'):
+                    self.adversarial_loss = tf.reduce_mean(-tf.log(self.discrim_fake_output + FLAGS.EPS))
+                
+                if (FLAGS.GAN_type is 'WGAN_GP'):
+                    self.adversarial_loss = tf.reduce_mean(-self.discrim_fake_output)
 
             self.gen_loss = (1 - FLAGS.adversarial_ratio) * self.content_loss + (FLAGS.adversarial_ratio) * self.adversarial_loss
 
-        tf.summary.scalar('generator loss', self.gen_loss)
-
+        tf.summary.scalar('Generator loss', self.gen_loss)
+        tf.summary.scalar('Adversarial loss', self.adversarial_loss)
+        tf.summary.scalar('Content loss', self.content_loss)
+        
         # Calculating the discriminator loss
         with tf.variable_scope('discriminator_loss'):
-            discrim_fake_loss = tf.log(1 - self.discrim_fake_output + FLAGS.EPS)
-            discrim_real_loss = tf.log(self.discrim_real_output + FLAGS.EPS)
+            if (FLAGS.GAN_type is 'GAN'):
+                discrim_fake_loss = tf.log(1 - self.discrim_fake_output + FLAGS.EPS)
+                discrim_real_loss = tf.log(self.discrim_real_output + FLAGS.EPS)
 
-            self.discrim_loss = tf.reduce_mean(-(discrim_fake_loss + discrim_real_loss))
+                self.discrim_loss = tf.reduce_mean(-(discrim_fake_loss + discrim_real_loss))
 
-        tf.summary.scalar('discriminator loss', self.discrim_loss)
+            if (FLAGS.GAN_type is 'WGAN_GP'):
+                self.discrim_loss = tf.reduce_mean(self.discrim_fake_output -self.discrim_real_output)
+                eps_WGAN = tf.random_uniform(shape=[FLAGS.batch_size, 1, 1, 1, 1], minval = 0., maxval = 1.)
+                inpt_hat = eps_WGAN * self.next_batch_HR + (1 - eps_WGAN) * self.gen_output
+                
+                # Build the interpolatd discriminator for WGAN-GP
+                with tf.name_scope('hat_discriminator'):
+                    with tf.variable_scope('discriminator', reuse=True):
+                        discrim_hat_output = discriminator(inpt_hat, FLAGS=FLAGS)
+                
+                grad_dicrim_inpt_hat = tf.gradients(discrim_hat_output, [inpt_hat])[0]
+
+                # L2-Norm across channels
+                gradnorm_discrim_inpt_hat = tf.sqrt(tf.reduce_sum(tf.square(grad_dicrim_inpt_hat), reduction_indices=[-1]))
+                gradient_penalty = tf.reduce_mean((gradnorm_discrim_inpt_hat - 1.)**2)
+
+                self.discrim_loss += FLAGS.lambda_WGAN * gradient_penalty
+
+        tf.summary.scalar('Discriminator loss', self.discrim_loss)
 
         with tf.variable_scope('get_learning_rate_and_global_step'):
 
@@ -314,6 +343,10 @@ class TEGAN(object):
         self.weights_initializer_g = tf.train.Saver(gen_tvars)
 
         # Summary
+        # tf.summary.image("u-velocity", tf.convert_to_tensor( 1.0*np.random.randint(0,255,(5,64,64,3)) )  )
+        # tf.summary.image("v-velocity", tf.convert_to_tensor( 1.0*np.random.randint(0,255,(1,64,64,3)) )  )
+        # tf.summary.image("pressure"  , tf.convert_to_tensor( 1.0*np.random.randint(0,255,(1,64,64,3)) )  )
+        # self.merged_summary = tf.summary.merge([self.dloss_summary,self.gloss_summary,summary_image])
         self.merged_summary = tf.summary.merge_all()
 
     def initialize(self, session):
@@ -330,7 +363,7 @@ class TEGAN(object):
             else:
                 print("Restoring weights from {}".format(self.FLAGS.checkpoint))
                 self.saver.restore(session, self.FLAGS.checkpoint)
-
+    
         self.summary_writer = tf.summary.FileWriter( self.FLAGS.summary_dir, session.graph )
 
 
@@ -342,14 +375,20 @@ class TEGAN(object):
         for i in range(self.FLAGS.max_iter):
             try:
                 if ( (i+1) % self.FLAGS.gen_freq) == 0:
-                    d_loss, g_loss, train, step, merged = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) )
+                    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                    run_metadata = tf.RunMetadata()
+
+                    d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) ,
+                                                                        options=run_options,
+                                                                        run_metadata=run_metadata)
 
                     with open(self.FLAGS.log_file, 'a') as f:
                         f.write('%06d %26.16e %26.16e\n' %(step, d_loss, g_loss))
                         f.flush()
                     print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
 
-                    self.summary_writer.add_summary(merged, step)
+                    self.summary_writer.add_run_metadata(run_metadata, 'step%03d' % step)
+                    self.summary_writer.add_summary(summary, step)
                 else:
                     d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step) )
                     print("Iteration {}: discriminator loss = {}".format(i, d_loss))
@@ -365,7 +404,7 @@ class TEGAN(object):
                 print("Saving weights to {}".format(os.path.join(self.FLAGS.output_dir, 'TEGAN')))
                 self.saver.save(session, os.path.join(self.FLAGS.output_dir, 'TEGAN'), global_step=step)
 
-        return results
+        return
 
 
     def evaluate(self, session):

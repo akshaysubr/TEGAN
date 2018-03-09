@@ -45,7 +45,8 @@ def defaultFlags():
     Flags.DEFINE_integer('save_freq', 10, 'The frequency of saving checkpoints')
     Flags.DEFINE_float('EPS', 1.e-12, 'Threshold for loss computations inside the log')
     Flags.DEFINE_float('adversarial_ratio', 1.e-3, 'Weighting factor for the adversarial loss')
-
+    Flags.DEFINE_string('GAN_type', 'GAN', 'GAN_type: GAN or WGAN_GP')
+    Flags.DEFINE_float('lambda_WGAN', 10., 'Weightage for gradient penalty in WGAN-GP')
     
     FLAGS = Flags.FLAGS
     
