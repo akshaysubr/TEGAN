@@ -194,6 +194,16 @@ def d2dz2(inpt, channel, dz, scope='d2dz2', name=None):
     return output
 
 
+def get_TKE(inpt, name='TKE'):
+    with tf.name_scope(name):
+        TKE = tf.square( inpt[:,:,:,0] )
+        TKE = tf.add( TKE, tf.square( inpt[:,:,:,1] ) )
+        TKE = tf.add( TKE, tf.square( inpt[:,:,:,2] ) )
+        TKE = tf.scalar_mul(0.5, TKE)
+
+    return TKE
+
+
 def get_velocity_grad(inpt, dx, dy, dz, scope='vel_grad', name=None):
     dudx = ddx(inpt, 0, dx, scope='dudx')
     dudy = ddy(inpt, 0, dy, scope='dudy')
