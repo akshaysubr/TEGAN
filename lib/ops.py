@@ -220,6 +220,14 @@ def get_velocity_grad(inpt, dx, dy, dz, scope='vel_grad', name=None):
     return dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz
 
 
+def get_enstrophy(inpt, vorticity, name='enstrophy'):
+    omega_x, omega_y, omega_z = vorticity
+
+    with tf.name_scope(name):
+        Omega = omega_x**2 + omega_y**2 + omega_z**2
+
+    return Omega
+
 def prelu_tf(inputs, name='Prelu'):
     with tf.variable_scope(name):
         alphas = tf.get_variable('alpha',inputs.get_shape()[-1],
