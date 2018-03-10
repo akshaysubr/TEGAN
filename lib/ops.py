@@ -209,6 +209,12 @@ def get_velocity_grad(inpt, dx, dy, dz, scope='vel_grad', name=None):
 
     return dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz
 
+def get_vorticity(vel_grad, scope='vorticity', name=None):
+    udx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
+    vort_x = dwdy - dvdz
+    vort_y = dudz - dwdx
+    vort_z = dvdx - dudy
+    return vort_x, vort_y, vort_z
 
 def prelu_tf(inputs, name='Prelu'):
     with tf.variable_scope(name):
