@@ -194,6 +194,73 @@ def d2dz2(inpt, channel, dz, scope='d2dz2', name=None):
     return output
 
 
+def get_TKE(inpt, name='TKE'):
+    with tf.name_scope(name):
+        TKE = tf.square( inpt[:,:,:,0] )
+        TKE = TKE + tf.square( inpt[:,:,:,1] )
+        TKE = TKE + tf.square( inpt[:,:,:,2] )
+        TKE = 0.5*TKE
+        TKE = tf.expand_dims(TKE, axis=4)
+
+    return TKE
+
+
+def get_velocity_grad(inpt, dx, dy, dz, scope='vel_grad', name=None):
+    with tf.variable_scope(scope):
+        dudx = ddx(inpt, 0, dx, scope='dudx')
+        dudy = ddy(inpt, 0, dy, scope='dudy')
+        dudz = ddz(inpt, 0, dz, scope='dudz')
+
+        dvdx = ddx(inpt, 1, dx, scope='dvdx')
+        dvdy = ddy(inpt, 1, dy, scope='dvdy')
+        dvdz = ddz(inpt, 1, dz, scope='dvdz')
+
+        dwdx = ddx(inpt, 2, dx, scope='dwdx')
+        dwdy = ddy(inpt, 2, dy, scope='dwdy')
+        dwdz = ddz(inpt, 2, dz, scope='dwdz')
+
+    return dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz
+
+def get_vorticity(vel_grad, scope='vorticity', name=None):
+    udx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
+    vort_x = dwdy - dvdz
+    vort_y = dudz - dwdx
+    vort_z = dvdx - dudy
+    return vort_x, vort_y, vort_z
+
+def get_enstrophy(vorticity, name='enstrophy'):
+    omega_x, omega_y, omega_z = vorticity
+
+    with tf.name_scope(name):
+        Omega = omega_x**2 + omega_y**2 + omega_z**2
+
+    return Omega
+
+def get_continuity_residual(vel_grad, name='continuity'):
+
+    dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
+    with tf.name_scope(name):
+        res = dudx + dvdy + dwdz
+
+    return res
+
+
+def get_pressure_residual(inpt, vel_grad, dx, dy, dz scope='pressure'):
+
+    dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
+
+    with tf.variable_scope(scope):
+        d2pdx2 =d2dx2(inpt, 3, dx)
+        d2pdy2 =d2dy2(inpt, 3, dy)
+        d2pdz2 =d2dz2(inpt, 3, dz)
+
+        res = (d2pdx2 + d2pdy2 + d2pdz2)
+        res = res + dudx*dudx + dvdy*dvdy + dwdz*dwdz
+                  + 2*(dudy*dvdx + dudz*dwdx + dvdz*dwdy)
+
+    return res
+
+
 def prelu_tf(inputs, name='Prelu'):
     with tf.variable_scope(name):
         alphas = tf.get_variable('alpha',inputs.get_shape()[-1],
