@@ -194,6 +194,15 @@ def d2dz2(inpt, channel, dz, scope='d2dz2', name=None):
     return output
 
 
+def get_TKE(inpt, scope='TKE', name=None):
+    TKE = tf.square( inpt[:,:,:,0] )
+    TKE = tf.add( TKE, tf.square( inpt[:,:,:,1] ) )
+    TKE = tf.add( TKE, tf.square( inpt[:,:,:,2] ) )
+    TKE = tf.scalar_mul(0.5, TKE)
+
+    return TKE
+
+
 def prelu_tf(inputs, name='Prelu'):
     with tf.variable_scope(name):
         alphas = tf.get_variable('alpha',inputs.get_shape()[-1],
