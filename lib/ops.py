@@ -195,19 +195,45 @@ def d2dz2(inpt, channel, dz, scope='d2dz2', name=None):
 
 
 def get_velocity_grad(inpt, dx, dy, dz, scope='vel_grad', name=None):
-    dudx = ddx(inpt, 0, dx, scope='dudx')
-    dudy = ddy(inpt, 0, dy, scope='dudy')
-    dudz = ddz(inpt, 0, dz, scope='dudz')
+    with tf.variable_scope(scope):
+        dudx = ddx(inpt, 0, dx, scope='dudx')
+        dudy = ddy(inpt, 0, dy, scope='dudy')
+        dudz = ddz(inpt, 0, dz, scope='dudz')
 
-    dvdx = ddx(inpt, 1, dx, scope='dvdx')
-    dvdy = ddy(inpt, 1, dy, scope='dvdy')
-    dvdz = ddz(inpt, 1, dz, scope='dvdz')
+        dvdx = ddx(inpt, 1, dx, scope='dvdx')
+        dvdy = ddy(inpt, 1, dy, scope='dvdy')
+        dvdz = ddz(inpt, 1, dz, scope='dvdz')
 
-    dwdx = ddx(inpt, 2, dx, scope='dwdx')
-    dwdy = ddy(inpt, 2, dy, scope='dwdy')
-    dwdz = ddz(inpt, 2, dz, scope='dwdz')
+        dwdx = ddx(inpt, 2, dx, scope='dwdx')
+        dwdy = ddy(inpt, 2, dy, scope='dwdy')
+        dwdz = ddz(inpt, 2, dz, scope='dwdz')
 
     return dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz
+
+
+def get_continuity_residual(vel_grad, name='continuity'):
+
+    dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
+    with tf.name_scope(name):
+        res = dudx + dvdy + dwdz
+
+    return res
+
+
+def get_pressure_residual(inpt, vel_grad, dx, dy, dz scope='pressure'):
+
+    dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
+
+    with tf.variable_scope(scope):
+        d2pdx2 =d2dx2(inpt, 3, dx)
+        d2pdy2 =d2dy2(inpt, 3, dy)
+        d2pdz2 =d2dz2(inpt, 3, dz)
+
+        res = (d2pdx2 + d2pdy2 + d2pdz2)
+        res = res + dudx*dudx + dvdy*dvdy + dwdz*dwdz
+                  + 2*(dudy*dvdx + dudz*dwdx + dvdz*dwdy)
+
+    return res
 
 
 def prelu_tf(inputs, name='Prelu'):
