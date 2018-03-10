@@ -194,6 +194,22 @@ def d2dz2(inpt, channel, dz, scope='d2dz2', name=None):
     return output
 
 
+def get_velocity_grad(inpt, dx, dy, dz, scope='vel_grad', name=None):
+    dudx = ddx(inpt, 0, dx, scope='dudx')
+    dudy = ddy(inpt, 0, dy, scope='dudy')
+    dudz = ddz(inpt, 0, dz, scope='dudz')
+
+    dvdx = ddx(inpt, 1, dx, scope='dvdx')
+    dvdy = ddy(inpt, 1, dy, scope='dvdy')
+    dvdz = ddz(inpt, 1, dz, scope='dvdz')
+
+    dwdx = ddx(inpt, 2, dx, scope='dwdx')
+    dwdy = ddy(inpt, 2, dy, scope='dwdy')
+    dwdz = ddz(inpt, 2, dz, scope='dwdz')
+
+    return dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz
+
+
 def prelu_tf(inputs, name='Prelu'):
     with tf.variable_scope(name):
         alphas = tf.get_variable('alpha',inputs.get_shape()[-1],
