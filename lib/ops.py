@@ -228,6 +228,14 @@ def get_vorticity(vel_grad, scope='vorticity', name=None):
     vort_z = dvdx - dudy
     return vort_x, vort_y, vort_z
 
+def get_enstrophy(vorticity, name='enstrophy'):
+    omega_x, omega_y, omega_z = vorticity
+
+    with tf.name_scope(name):
+        Omega = omega_x**2 + omega_y**2 + omega_z**2
+
+    return Omega
+
 def get_continuity_residual(vel_grad, name='continuity'):
 
     dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
