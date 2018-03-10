@@ -197,9 +197,10 @@ def d2dz2(inpt, channel, dz, scope='d2dz2', name=None):
 def get_TKE(inpt, name='TKE'):
     with tf.name_scope(name):
         TKE = tf.square( inpt[:,:,:,0] )
-        TKE = tf.add( TKE, tf.square( inpt[:,:,:,1] ) )
-        TKE = tf.add( TKE, tf.square( inpt[:,:,:,2] ) )
-        TKE = tf.scalar_mul(0.5, TKE)
+        TKE = TKE + tf.square( inpt[:,:,:,1] )
+        TKE = TKE + tf.square( inpt[:,:,:,2] )
+        TKE = 0.5*TKE
+        TKE = tf.expand_dims(TKE, axis=4)
 
     return TKE
 
