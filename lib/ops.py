@@ -194,6 +194,16 @@ def d2dz2(inpt, channel, dz, scope='d2dz2', name=None):
     return output
 
 
+def get_TKE(inpt, name='TKE'):
+    with tf.name_scope(name):
+        TKE = tf.square( inpt[:,:,:,0] )
+        TKE = tf.add( TKE, tf.square( inpt[:,:,:,1] ) )
+        TKE = tf.add( TKE, tf.square( inpt[:,:,:,2] ) )
+        TKE = tf.scalar_mul(0.5, TKE)
+
+    return TKE
+
+
 def get_velocity_grad(inpt, dx, dy, dz, scope='vel_grad', name=None):
     with tf.variable_scope(scope):
         dudx = ddx(inpt, 0, dx, scope='dudx')
@@ -210,6 +220,12 @@ def get_velocity_grad(inpt, dx, dy, dz, scope='vel_grad', name=None):
 
     return dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz
 
+def get_vorticity(vel_grad, scope='vorticity', name=None):
+    udx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
+    vort_x = dwdy - dvdz
+    vort_y = dudz - dwdx
+    vort_z = dvdx - dudy
+    return vort_x, vort_y, vort_z
 
 def get_continuity_residual(vel_grad, name='continuity'):
 
