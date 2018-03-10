@@ -245,7 +245,7 @@ def get_continuity_residual(vel_grad, name='continuity'):
     return res
 
 
-def get_pressure_residual(inpt, vel_grad, dx, dy, dz scope='pressure'):
+def get_pressure_residual(inpt, vel_grad, dx, dy, dz, scope='pressure'):
 
     dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
 
@@ -255,8 +255,8 @@ def get_pressure_residual(inpt, vel_grad, dx, dy, dz scope='pressure'):
         d2pdz2 =d2dz2(inpt, 3, dz)
 
         res = (d2pdx2 + d2pdy2 + d2pdz2)
-        res = res + dudx*dudx + dvdy*dvdy + dwdz*dwdz
-                  + 2*(dudy*dvdx + dudz*dwdx + dvdz*dwdy)
+        res = res + dudx*dudx + dvdy*dvdy + dwdz*dwdz \
+               + 2*(dudy*dvdx + dudz*dwdx + dvdz*dwdy)
 
     return res
 

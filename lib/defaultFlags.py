@@ -21,7 +21,8 @@ def defaultFlags():
     # The data preparing operation
     Flags.DEFINE_integer('batch_size', 5, 'Batch size of the input batch')
     Flags.DEFINE_integer('input_size', 16, 'Size of the input tensor')
-    Flags.DEFINE_string('input_dir_HR', '', 'The directory of the high resolution input data')
+    Flags.DEFINE_string('train_dir', '', 'The directory of the high resolution training data')
+    Flags.DEFINE_string('dev_dir', '', 'The directory of the high resolution dev set')
     Flags.DEFINE_integer('name_queue_capacity', 2048, 'The capacity of the filename queue (suggest large to ensure'
                          'enough random shuffle.')
     Flags.DEFINE_integer('image_queue_capacity', 2048, 'The capacity of the image queue (suggest large to ensure'
@@ -43,6 +44,7 @@ def defaultFlags():
     Flags.DEFINE_integer('display_freq', 20, 'The diplay frequency of the training process')
     Flags.DEFINE_integer('summary_freq', 100, 'The frequency of writing summary')
     Flags.DEFINE_integer('save_freq', 10, 'The frequency of saving checkpoints')
+    Flags.DEFINE_integer('dev_freq', 1, 'The frequency of saving dev summary')
     Flags.DEFINE_float('EPS', 1.e-12, 'Threshold for loss computations inside the log')
     Flags.DEFINE_float('adversarial_ratio', 1.e-3, 'Weighting factor for the adversarial loss')
     Flags.DEFINE_string('GAN_type', 'GAN', 'GAN_type: GAN or WGAN_GP')

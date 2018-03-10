@@ -248,28 +248,44 @@ class TEResNet(object):
 
 class TEGAN(object):
 
-    def __init__(self, filenames_HR, FLAGS):
+    def __init__(self, filenames_train, filenames_dev, FLAGS):
 
-        self.filenames_HR = filenames_HR
+        self.filenames_train = filenames_train
+        self.filenames_dev   = filenames_dev
 
-        self.dataset = tf.data.TFRecordDataset(self.filenames_HR)
-        self.dataset = self.dataset.map(parseTFRecordExample)
-        self.dataset = self.dataset.shuffle(buffer_size=10000)
+        self.dataset_train = tf.data.TFRecordDataset(self.filenames_train)
+        self.dataset_train = self.dataset_train.map(parseTFRecordExample)
+        self.dataset_train = self.dataset_train.shuffle(buffer_size=10000)
+        self.dataset_train = self.dataset_train.batch(FLAGS.batch_size)
         if FLAGS.mode == 'train':
-            self.dataset = self.dataset.batch(FLAGS.batch_size)
-            self.dataset = self.dataset.repeat(FLAGS.max_epoch)
+            self.dataset_train = self.dataset_train.repeat(FLAGS.max_epoch)
         else:
-            self.dataset = self.dataset.batch(len(filenames_HR))
-            self.dataset = self.dataset.repeat(1)
+            self.dataset_train = self.dataset_train.repeat(1)
 
-        self.iterator = self.dataset.make_one_shot_iterator()
+        self.iterator_train = self.dataset_train.make_one_shot_iterator()
+        # self.iterator_train_handle = session.run(self.iterator_train.string_handle())
     
-        self.next_batch_HR = self.iterator.get_next()
-        self.next_batch_LR = ops.filter3d(self.next_batch_HR)
+        self.dataset_dev = tf.data.TFRecordDataset(self.filenames_dev)
+        self.dataset_dev = self.dataset_dev.map(parseTFRecordExample)
+        self.dataset_dev = self.dataset_dev.shuffle(buffer_size=10000)
+        self.dataset_dev = self.dataset_dev.batch(FLAGS.batch_size)
+        if FLAGS.mode == 'train':
+            self.dataset_dev = self.dataset_dev.repeat()
+        else:
+            self.dataset_dev = self.dataset_dev.repeat(1)
+
+        self.iterator_dev = self.dataset_dev.make_one_shot_iterator()
+        # self.iterator_dev_handle = session.run(self.iterator_dev.string_handle())
+   
+        self.handle = tf.placeholder(tf.string, shape=[])
+        self.iterator = tf.data.Iterator.from_string_handle(self.handle, self.iterator_train.output_types)
 
         # TODO: Fix batch_size not being fator of total dataset size
-        self.next_batch_LR.set_shape([FLAGS.batch_size, FLAGS.input_size, FLAGS.input_size, FLAGS.input_size, 4])
+        self.next_batch_HR = self.iterator.get_next()
         self.next_batch_HR.set_shape([FLAGS.batch_size, FLAGS.input_size * 4, FLAGS.input_size * 4, FLAGS.input_size * 4, 4])
+
+        self.next_batch_LR = ops.filter3d(self.next_batch_HR)
+        self.next_batch_LR.set_shape([FLAGS.batch_size, FLAGS.input_size, FLAGS.input_size, FLAGS.input_size, 4])
 
         self.FLAGS = FLAGS
 
@@ -376,7 +392,7 @@ class TEGAN(object):
         tf.summary.image("Low resolution", self.next_batch_LR[0:1,:,:,0,0:1]  )
         tf.summary.image("Generated", self.gen_output[0:1,:,:,0,0:1]  )
         tf.summary.image("Concat", tf.concat( [self.next_batch_HR[0:1,:,:,0,0:1], self.gen_output[0:1,:,:,0,0:1]], axis=2 ))
-        tf.summary.scalar("Discriminator fake output", self.discrim_fake_output[0])
+        tf.summary.scalar("Discriminator fake output", self.discrim_fake_output[0,0])
         self.merged_summary = tf.summary.merge_all()
 
     def initialize(self, session):
@@ -394,8 +410,11 @@ class TEGAN(object):
                 print("Restoring weights from {}".format(self.FLAGS.checkpoint))
                 self.saver.restore(session, self.FLAGS.checkpoint)
     
-        self.summary_writer = tf.summary.FileWriter( self.FLAGS.summary_dir, session.graph )
+        self.summary_writer_train = tf.summary.FileWriter( os.path.join(self.FLAGS.summary_dir, 'train'), session.graph )
+        self.summary_writer_dev   = tf.summary.FileWriter( os.path.join(self.FLAGS.summary_dir, 'dev'),   session.graph )
 
+        self.iterator_train_handle = session.run(self.iterator_train.string_handle())
+        self.iterator_dev_handle = session.run(self.iterator_dev.string_handle())
 
     def optimize(self, session):
 
@@ -409,18 +428,32 @@ class TEGAN(object):
                     run_metadata = tf.RunMetadata()
 
                     d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) ,
+                                                                        feed_dict={self.handle: self.iterator_train_handle},
                                                                         options=run_options,
                                                                         run_metadata=run_metadata)
+
+                    self.summary_writer_train.add_run_metadata(run_metadata, 'step%06d' % step)
+                    self.summary_writer_train.add_summary(summary, step)
+
+                    if ( (i+1) % (self.FLAGS.gen_freq*self.FLAGS.dev_freq) )  == 0:
+                        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                        run_metadata = tf.RunMetadata()
+
+                        d_loss_dev, g_loss_dev, summary = session.run( (self.discrim_loss, self.gen_loss, self.merged_summary) ,
+                                                                            feed_dict={self.handle: self.iterator_dev_handle},
+                                                                            options=run_options,
+                                                                            run_metadata=run_metadata)
+
+                        self.summary_writer_dev.add_run_metadata(run_metadata, 'step%06d' % step)
+                        self.summary_writer_dev.add_summary(summary, step)
+
 
                     with open(self.FLAGS.log_file, 'a') as f:
                         f.write('%06d %26.16e %26.16e\n' %(step, d_loss, g_loss))
                         f.flush()
                     print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
-
-                    self.summary_writer.add_run_metadata(run_metadata, 'step%03d' % step)
-                    self.summary_writer.add_summary(summary, step)
                 else:
-                    d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step) )
+                    d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step), feed_dict={self.handle: self.iterator_train_handle})
                     print("Iteration {}: discriminator loss = {}".format(i, d_loss))
 
             except tf.errors.OutOfRangeError:
@@ -438,5 +471,5 @@ class TEGAN(object):
 
 
     def evaluate(self, session):
-        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss, self.discrim_loss ) )
+        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss, self.discrim_loss ), feed_dict={self.handle: self.iterator_train_handle})
 
