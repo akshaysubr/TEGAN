@@ -156,7 +156,12 @@ class TEResNet(object):
             self.gen_output = generator(self.next_batch_LR, self.output_channels, reuse=False, FLAGS=FLAGS)
             # self.gen_output.set_shape([FLAGS.batch_size, FLAGS.input_size * 4, FLAGS.input_size * 4, FLAGS.input_size * 4, 4])
 
-
+        # Summary
+        tf.summary.image("High resolution", self.next_batch_HR[0:1,:,:,0,0:1]  )
+        tf.summary.image("Low resolution", self.next_batch_LR[0:1,:,:,0,0:1]  )
+        tf.summary.image("Generated", self.gen_output[0:1,:,:,0,0:1]  )
+        tf.summary.image("Concat", tf.concat( [self.next_batch_HR[0:1,:,:,0,0:1], self.gen_output[0:1,:,:,0,0:1]], axis=2 ))
+        
         # Calculating the generator loss
         with tf.variable_scope('generator_loss'):
 
@@ -167,6 +172,8 @@ class TEResNet(object):
 
             self.gen_loss = self.content_loss
 
+        tf.summary.scalar('Generator/Content loss', self.content_loss)
+            
         # Define the learning rate and global step
         with tf.variable_scope('get_learning_rate_and_global_step'):
 
@@ -191,6 +198,7 @@ class TEResNet(object):
         self.saver = tf.train.Saver(max_to_keep=10)
         self.weights_initializer = tf.train.Saver(gen_tvars)
 
+        self.merged_summary = tf.summary.merge_all()
 
     def initialize(self, session):
 
@@ -200,20 +208,38 @@ class TEResNet(object):
             print("Restoring weights from {}".format(self.FLAGS.checkpoint))
             self.weights_initializer.restore(session, self.FLAGS.checkpoint)
 
+        self.summary_writer = tf.summary.FileWriter( self.FLAGS.summary_dir, session.graph )
 
     def optimize(self, session):
 
         if self.FLAGS.mode != 'train':
             raise RuntimeError("Cannot optimize if not in train mode!!!")
 
-        results = session.run( (self.gen_loss, self.global_step, self.gen_train) )
+        for i in range(self.FLAGS.max_iter):
+            try:
+                if ( (i+1) % self.FLAGS.summary_freq) == 0:
+                    g_loss, train, step, summary  = session.run( (self.gen_loss, self.gen_train, self.global_step, self.merged_summary) )
+
+                    with open(self.FLAGS.log_file, 'a') as f:
+                        f.write('%06d %26.16e %26.16e\n' %(step, g_loss))
+                        f.flush()
+                    print("Iteration {}: generator loss = {}".format(i, g_loss))
+                    self.summary_writer.add_summary(summary, step)
+                else:
+                    g_loss, train, step = session.run( (self.gen_loss, self.gen_train, self.global_step) )
+                    print("Iteration {}: generator loss = {}".format(i, g_loss))
+
+            except tf.errors.OutOfRangeError:
+                # training terminated
+                print("Finished training!")
+                break
 
         # Save after every save_freq iterations
-        if (results[1] % 10) == 0:
+        if (results[1] % self.FLAGS.save_freq) == 0:
             print("Saving weights to {}".format(os.path.join(self.FLAGS.output_dir, 'model')))
             self.saver.save(session, os.path.join(self.FLAGS.output_dir, 'model'), global_step=results[1])
-
-        return results
+            
+        return 
 
 
     def evaluate(self, session):
@@ -350,6 +376,7 @@ class TEGAN(object):
         tf.summary.image("Low resolution", self.next_batch_LR[0:1,:,:,0,0:1]  )
         tf.summary.image("Generated", self.gen_output[0:1,:,:,0,0:1]  )
         tf.summary.image("Concat", tf.concat( [self.next_batch_HR[0:1,:,:,0,0:1], self.gen_output[0:1,:,:,0,0:1]], axis=2 ))
+        tf.summary.scalar("Discriminator fake output", self.discrim_fake_output[0])
         self.merged_summary = tf.summary.merge_all()
 
     def initialize(self, session):
@@ -403,7 +430,7 @@ class TEGAN(object):
 
 
             # Save after every save_freq iterations
-            if (step % 10) == 0:
+            if (step % self.FLAGS.save_freq) == 0:
                 print("Saving weights to {}".format(os.path.join(self.FLAGS.output_dir, 'TEGAN')))
                 self.saver.save(session, os.path.join(self.FLAGS.output_dir, 'TEGAN'), global_step=step)
 

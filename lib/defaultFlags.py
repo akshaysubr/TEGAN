@@ -4,8 +4,8 @@ def defaultFlags():
     Flags = tf.app.flags
 
     # The system parameter
-    Flags.DEFINE_string('output_dir', '/farmshare/user_data/akshays/TEGAN/output', 'The output directory of the checkpoint')
-    Flags.DEFINE_string('summary_dir', '/farmshare/user_data/akshays/TEGAN/summary', 'The dirctory to output the summary')
+    Flags.DEFINE_string('output_dir', '', 'The output directory of the checkpoint')
+    Flags.DEFINE_string('summary_dir', '', 'The dirctory to output the summary')
     Flags.DEFINE_string('log_file', 'log.dat', 'File to write the logs to')
     Flags.DEFINE_string('mode', 'train', 'The mode of the model train, test.')
     Flags.DEFINE_string('checkpoint', None, 'If provided, the weight will be restored from the provided checkpoint')
@@ -21,7 +21,7 @@ def defaultFlags():
     # The data preparing operation
     Flags.DEFINE_integer('batch_size', 5, 'Batch size of the input batch')
     Flags.DEFINE_integer('input_size', 16, 'Size of the input tensor')
-    Flags.DEFINE_string('input_dir_HR', '/farmshare/user_data/akshays/TEGAN/Data/train_small', 'The directory of the high resolution input data')
+    Flags.DEFINE_string('input_dir_HR', '', 'The directory of the high resolution input data')
     Flags.DEFINE_integer('name_queue_capacity', 2048, 'The capacity of the filename queue (suggest large to ensure'
                          'enough random shuffle.')
     Flags.DEFINE_integer('image_queue_capacity', 2048, 'The capacity of the image queue (suggest large to ensure'
