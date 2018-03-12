@@ -185,7 +185,7 @@ class TEResNet(object):
             # Content loss
             with tf.variable_scope('content_loss'):
                 # Compute the euclidean distance between the two features
-                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) )
+                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) ) / tf.reduce_mean( tf.square(self.next_batch_HR) )
 
             self.gen_loss = self.content_loss
 
@@ -203,7 +203,7 @@ class TEResNet(object):
 
                 tke_gen = ops.get_TKE(self.gen_output) 
                 tke_hr  = ops.get_TKE(self.next_batch_HR) 
-                self.tke_loss = tf.reduce_mean(tf.square(tke_gen-tke_hr)) 
+                self.tke_loss = tf.reduce_mean(tf.square(tke_gen-tke_hr)) / tf.reduce_mean(tf.square(tke_hr))
 
                 vorticity_gen = ops.get_vorticity(vel_grad) 
                 vorticity_hr  = ops.get_vorticity(vel_grad_HR) 
@@ -211,7 +211,7 @@ class TEResNet(object):
  
                 ens_gen = ops.get_enstrophy(vorticity_gen) 
                 ens_hr  = ops.get_enstrophy(vorticity_hr) 
-                self.ens_loss = tf.reduce_mean(tf.square(ens_gen-ens_hr)) 
+                self.ens_loss = tf.reduce_mean(tf.square(ens_gen-ens_hr)) / tf.reduce_mean(tf.square(ens_hr))
 
         tf.summary.scalar('Generator loss', self.gen_loss) 
         tf.summary.scalar('Content loss', self.content_loss) 
@@ -221,8 +221,8 @@ class TEResNet(object):
         # tf.summary.scalar('Vorticity loss', self.vorticity_loss) 
         tf.summary.scalar('Enstrophy loss', self.ens_loss) 
 
-        tf.summary.image('Continuity residual',self.continuity_res[0:1,:,:,0,0:1])
-        tf.summary.image('Pressure residual',self.pressure_res[0:1,:,:,0,0:1])
+        tf.summary.image('Z - Continuity residual',self.continuity_res[0:1,:,:,0,0:1])
+        tf.summary.image('Z - Pressure residual',self.pressure_res[0:1,:,:,0,0:1])
 
         # Define the learning rate and global step
         with tf.variable_scope('get_learning_rate_and_global_step'):
@@ -296,9 +296,9 @@ class TEResNet(object):
                 break
 
         # Save after every save_freq iterations
-        if (results[1] % self.FLAGS.save_freq) == 0:
+        if (step % self.FLAGS.save_freq) == 0:
             print("Saving weights to {}".format(os.path.join(self.FLAGS.output_dir, 'model')))
-            self.saver.save(session, os.path.join(self.FLAGS.output_dir, 'model'), global_step=results[1])
+            self.saver.save(session, os.path.join(self.FLAGS.output_dir, 'model'), global_step=step)
             
         return 
 
@@ -373,7 +373,7 @@ class TEGAN(object):
             # Content loss
             with tf.variable_scope('content_loss'):
                 # Compute the euclidean distance between the two features
-                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) )
+                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) ) / tf.reduce_mean( tf.square(self.next_batch_HR) )
 
             with tf.variable_scope('adversarial_loss'):
                 if (FLAGS.GAN_type == 'GAN'):
@@ -398,7 +398,7 @@ class TEGAN(object):
 
                 tke_gen = ops.get_TKE(self.gen_output) 
                 tke_hr  = ops.get_TKE(self.next_batch_HR) 
-                self.tke_loss = tf.reduce_mean(tf.square(tke_gen-tke_hr)) 
+                self.tke_loss = tf.reduce_mean(tf.square(tke_gen-tke_hr)) / tf.reduce_mean(tf.square(tke_hr))
 
                 vorticity_gen = ops.get_vorticity(vel_grad) 
                 vorticity_hr  = ops.get_vorticity(vel_grad_HR) 
@@ -406,7 +406,7 @@ class TEGAN(object):
  
                 ens_gen = ops.get_enstrophy(vorticity_gen) 
                 ens_hr  = ops.get_enstrophy(vorticity_hr) 
-                self.ens_loss = tf.reduce_mean(tf.square(ens_gen-ens_hr)) 
+                self.ens_loss = tf.reduce_mean(tf.square(ens_gen-ens_hr)) / tf.reduce_mean(tf.square(ens_hr))
 
         tf.summary.scalar('Generator loss', self.gen_loss) 
         tf.summary.scalar('Adversarial loss', self.adversarial_loss) 
@@ -417,8 +417,8 @@ class TEGAN(object):
         # tf.summary.scalar('Vorticity loss', self.vorticity_loss) 
         tf.summary.scalar('Enstrophy loss', self.ens_loss) 
 
-        tf.summary.image('Continuity residual',self.continuity_res[0:1,:,:,0,0:1])
-        tf.summary.image('Pressure residual',self.pressure_res[0:1,:,:,0,0:1])
+        tf.summary.image('Z - Continuity residual',self.continuity_res[0:1,:,:,0,0:1])
+        tf.summary.image('Z - Pressure residual',self.pressure_res[0:1,:,:,0,0:1])
 
         # Create a new instance of the discriminator for gradient penalty
         if (FLAGS.GAN_type == 'WGAN_GP'):
