@@ -126,26 +126,43 @@ def discriminator(dis_inputs, FLAGS=None):
 
 class TEResNet(object):
 
-    def __init__(self, filenames_HR, FLAGS):
+    def __init__(self, filenames_train, filenames_dev, FLAGS):
 
-        self.filenames_HR = filenames_HR
+        self.filenames_train = filenames_train
+        self.filenames_dev   = filenames_dev
 
-        self.dataset = tf.data.TFRecordDataset(self.filenames_HR)
-        self.dataset = self.dataset.map(parseTFRecordExample)
-        self.dataset = self.dataset.shuffle(buffer_size=10000)
+        self.dataset_train = tf.data.TFRecordDataset(self.filenames_train)
+        self.dataset_train = self.dataset_train.map(parseTFRecordExample)
+        self.dataset_train = self.dataset_train.shuffle(buffer_size=10000)
+        self.dataset_train = self.dataset_train.batch(FLAGS.batch_size)
         if FLAGS.mode == 'train':
-            self.dataset = self.dataset.batch(FLAGS.batch_size)
-            self.dataset = self.dataset.repeat(FLAGS.max_epoch)
+            self.dataset_train = self.dataset_train.repeat(FLAGS.max_epoch)
         else:
-            self.dataset = self.dataset.batch(len(filenames_HR))
-            self.dataset = self.dataset.repeat(1)
+            self.dataset_train = self.dataset_train.repeat(1)
 
-        self.iterator = self.dataset.make_one_shot_iterator()
+        self.iterator_train = self.dataset_train.make_one_shot_iterator()
+        # self.iterator_train_handle = session.run(self.iterator_train.string_handle())
     
-        self.next_batch_HR = self.iterator.get_next()
-        self.next_batch_LR = ops.filter3d(self.next_batch_HR)
+        self.dataset_dev = tf.data.TFRecordDataset(self.filenames_dev)
+        self.dataset_dev = self.dataset_dev.map(parseTFRecordExample)
+        self.dataset_dev = self.dataset_dev.shuffle(buffer_size=10000)
+        self.dataset_dev = self.dataset_dev.batch(FLAGS.batch_size)
+        if FLAGS.mode == 'train':
+            self.dataset_dev = self.dataset_dev.repeat()
+        else:
+            self.dataset_dev = self.dataset_dev.repeat(1)
+
+        self.iterator_dev = self.dataset_dev.make_one_shot_iterator()
+        # self.iterator_dev_handle = session.run(self.iterator_dev.string_handle())
+   
+        self.handle = tf.placeholder(tf.string, shape=[])
+        self.iterator = tf.data.Iterator.from_string_handle(self.handle, self.iterator_train.output_types)
 
         # TODO: Fix batch_size not being fator of total dataset size
+        self.next_batch_HR = self.iterator.get_next()
+        self.next_batch_HR.set_shape([FLAGS.batch_size, FLAGS.input_size * 4, FLAGS.input_size * 4, FLAGS.input_size * 4, 4])
+
+        self.next_batch_LR = ops.filter3d(self.next_batch_HR)
         self.next_batch_LR.set_shape([FLAGS.batch_size, FLAGS.input_size, FLAGS.input_size, FLAGS.input_size, 4])
 
         self.FLAGS = FLAGS
@@ -172,8 +189,41 @@ class TEResNet(object):
 
             self.gen_loss = self.content_loss
 
-        tf.summary.scalar('Generator/Content loss', self.content_loss)
-            
+            # Physics loss 
+            with tf.variable_scope('physics_loss'): 
+                dx = 2.*np.pi/(4.*self.FLAGS.input_size) 
+
+                vel_grad = ops.get_velocity_grad(self.gen_output, dx, dx, dx) 
+                vel_grad_HR = ops.get_velocity_grad(self.next_batch_HR, dx, dx, dx) 
+                self.continuity_res = ops.get_continuity_residual(vel_grad) 
+                self.pressure_res = ops.get_pressure_residual(self.gen_output, vel_grad, dx, dx, dx) 
+
+                self.continuity_loss = tf.sqrt(tf.reduce_mean(tf.square(self.continuity_res))) 
+                self.pressure_loss = tf.sqrt(tf.reduce_mean(tf.square(self.pressure_res))) 
+
+                tke_gen = ops.get_TKE(self.gen_output) 
+                tke_hr  = ops.get_TKE(self.next_batch_HR) 
+                self.tke_loss = tf.reduce_mean(tf.square(tke_gen-tke_hr)) 
+
+                vorticity_gen = ops.get_vorticity(vel_grad) 
+                vorticity_hr  = ops.get_vorticity(vel_grad_HR) 
+                # self.vorticity_loss = tf.reduce_mean(tf.square(vorticity_gen-vorticity_hr)) 
+ 
+                ens_gen = ops.get_enstrophy(vorticity_gen) 
+                ens_hr  = ops.get_enstrophy(vorticity_hr) 
+                self.ens_loss = tf.reduce_mean(tf.square(ens_gen-ens_hr)) 
+
+        tf.summary.scalar('Generator loss', self.gen_loss) 
+        tf.summary.scalar('Content loss', self.content_loss) 
+        tf.summary.scalar('Continuity loss', self.continuity_loss) 
+        tf.summary.scalar('Pressure loss', self.pressure_loss) 
+        tf.summary.scalar('TKE loss', self.tke_loss) 
+        # tf.summary.scalar('Vorticity loss', self.vorticity_loss) 
+        tf.summary.scalar('Enstrophy loss', self.ens_loss) 
+
+        tf.summary.image('Continuity residual',self.continuity_res[0:1,:,:,0,0:1])
+        tf.summary.image('Pressure residual',self.pressure_res[0:1,:,:,0,0:1])
+
         # Define the learning rate and global step
         with tf.variable_scope('get_learning_rate_and_global_step'):
 
@@ -208,7 +258,11 @@ class TEResNet(object):
             print("Restoring weights from {}".format(self.FLAGS.checkpoint))
             self.weights_initializer.restore(session, self.FLAGS.checkpoint)
 
-        self.summary_writer = tf.summary.FileWriter( self.FLAGS.summary_dir, session.graph )
+        self.summary_writer_train = tf.summary.FileWriter( os.path.join(self.FLAGS.summary_dir, 'train'), session.graph )
+        self.summary_writer_dev   = tf.summary.FileWriter( os.path.join(self.FLAGS.summary_dir, 'dev'),   session.graph )
+
+        self.iterator_train_handle = session.run(self.iterator_train.string_handle())
+        self.iterator_dev_handle = session.run(self.iterator_dev.string_handle())
 
     def optimize(self, session):
 
@@ -218,15 +272,22 @@ class TEResNet(object):
         for i in range(self.FLAGS.max_iter):
             try:
                 if ( (i+1) % self.FLAGS.summary_freq) == 0:
-                    g_loss, train, step, summary  = session.run( (self.gen_loss, self.gen_train, self.global_step, self.merged_summary) )
+                    g_loss, train, step, summary  = session.run( (self.gen_loss, self.gen_train, self.global_step, self.merged_summary),
+                                                                 feed_dict={self.handle: self.iterator_train_handle} )
+                    self.summary_writer_train.add_summary(summary, step)
+
+                    if ( (i+1) % (self.FLAGS.summary_freq*self.FLAGS.dev_freq) )  == 0:
+                        g_loss_dev, summary = session.run( (self.gen_loss, self.merged_summary) ,
+                                                           feed_dict={self.handle: self.iterator_dev_handle} )
+                        self.summary_writer_dev.add_summary(summary, step)
 
                     with open(self.FLAGS.log_file, 'a') as f:
-                        f.write('%06d %26.16e %26.16e\n' %(step, g_loss))
+                        f.write('%06d %26.16e\n' %(step, g_loss))
                         f.flush()
                     print("Iteration {}: generator loss = {}".format(i, g_loss))
-                    self.summary_writer.add_summary(summary, step)
                 else:
-                    g_loss, train, step = session.run( (self.gen_loss, self.gen_train, self.global_step) )
+                    g_loss, train, step = session.run( (self.gen_loss, self.gen_train, self.global_step),
+                                                       feed_dict={self.handle: self.iterator_train_handle} )
                     print("Iteration {}: generator loss = {}".format(i, g_loss))
 
             except tf.errors.OutOfRangeError:
@@ -243,7 +304,8 @@ class TEResNet(object):
 
 
     def evaluate(self, session):
-        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss) )
+        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss),
+                            feed_dict={self.handle: self.iterator_train_handle} )
 
 
 class TEGAN(object):
@@ -322,10 +384,42 @@ class TEGAN(object):
 
             self.gen_loss = (1 - FLAGS.adversarial_ratio) * self.content_loss + (FLAGS.adversarial_ratio) * self.adversarial_loss
 
-        tf.summary.scalar('Generator loss', self.gen_loss)
-        tf.summary.scalar('Adversarial loss', self.adversarial_loss)
-        tf.summary.scalar('Content loss', self.content_loss)
-        
+            # Physics loss 
+            with tf.variable_scope('physics_loss'): 
+                dx = 2.*np.pi/(4.*self.FLAGS.input_size) 
+
+                vel_grad = ops.get_velocity_grad(self.gen_output, dx, dx, dx) 
+                vel_grad_HR = ops.get_velocity_grad(self.next_batch_HR, dx, dx, dx) 
+                self.continuity_res = ops.get_continuity_residual(vel_grad) 
+                self.pressure_res = ops.get_pressure_residual(self.gen_output, vel_grad, dx, dx, dx) 
+
+                self.continuity_loss = tf.sqrt(tf.reduce_mean(tf.square(self.continuity_res))) 
+                self.pressure_loss = tf.sqrt(tf.reduce_mean(tf.square(self.pressure_res))) 
+
+                tke_gen = ops.get_TKE(self.gen_output) 
+                tke_hr  = ops.get_TKE(self.next_batch_HR) 
+                self.tke_loss = tf.reduce_mean(tf.square(tke_gen-tke_hr)) 
+
+                vorticity_gen = ops.get_vorticity(vel_grad) 
+                vorticity_hr  = ops.get_vorticity(vel_grad_HR) 
+                # self.vorticity_loss = tf.reduce_mean(tf.square(vorticity_gen-vorticity_hr)) 
+ 
+                ens_gen = ops.get_enstrophy(vorticity_gen) 
+                ens_hr  = ops.get_enstrophy(vorticity_hr) 
+                self.ens_loss = tf.reduce_mean(tf.square(ens_gen-ens_hr)) 
+
+        tf.summary.scalar('Generator loss', self.gen_loss) 
+        tf.summary.scalar('Adversarial loss', self.adversarial_loss) 
+        tf.summary.scalar('Content loss', self.content_loss) 
+        tf.summary.scalar('Continuity loss', self.continuity_loss) 
+        tf.summary.scalar('Pressure loss', self.pressure_loss) 
+        tf.summary.scalar('TKE loss', self.tke_loss) 
+        # tf.summary.scalar('Vorticity loss', self.vorticity_loss) 
+        tf.summary.scalar('Enstrophy loss', self.ens_loss) 
+
+        tf.summary.image('Continuity residual',self.continuity_res[0:1,:,:,0,0:1])
+        tf.summary.image('Pressure residual',self.pressure_res[0:1,:,:,0,0:1])
+
         # Create a new instance of the discriminator for gradient penalty
         if (FLAGS.GAN_type == 'WGAN_GP'):
             eps_WGAN = tf.random_uniform(shape=[FLAGS.batch_size, 1, 1, 1, 1], minval = 0., maxval = 1.)
@@ -471,5 +565,5 @@ class TEGAN(object):
 
 
     def evaluate(self, session):
-        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss, self.discrim_loss ), feed_dict={self.handle: self.iterator_train_handle})
+        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss ), feed_dict={self.handle: self.iterator_train_handle})
 

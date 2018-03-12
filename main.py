@@ -34,7 +34,12 @@ filenames_dev = getTFRecordFilenamesIn(FLAGS.dev_dir)
 if len(filenames_dev) % FLAGS.batch_size != 0:
     raise RuntimeError("Tread with CAUTION! Training dataset size is not a multiple of batch_size")
 
-net = TEGAN(filenames_train, filenames_dev, FLAGS)
+if FLAGS.task == 'TEResNet':
+    net = TEResNet(filenames_train, filenames_dev, FLAGS)
+elif FLAGS.task == 'TEGAN':
+    net = TEGAN(filenames_train, filenames_dev, FLAGS)
+else:
+    raise ValueError('Need to specify FLAGS.task to be TEResNet or TEGAN')
 
 with tf.Session() as sess:
     net.initialize(sess)

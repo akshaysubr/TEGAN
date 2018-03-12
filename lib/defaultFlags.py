@@ -16,7 +16,7 @@ def defaultFlags():
                      'be 0. If set False, you are going to continue the training. That is, '
                      'the global_step will be initiallized from the checkpoint, too')
     Flags.DEFINE_boolean('is_training', True, 'Training => True, Testing => False')
-    Flags.DEFINE_string('task', None, 'The task: TEGAN, TEResnet')
+    Flags.DEFINE_string('task', 'TEGAN', 'The task: TEGAN, TEResNet')
 
     # The data preparing operation
     Flags.DEFINE_integer('batch_size', 5, 'Batch size of the input batch')
@@ -42,7 +42,7 @@ def defaultFlags():
     Flags.DEFINE_integer('max_iter', 1000, 'The max iteration of the training')
     Flags.DEFINE_integer('gen_freq', 1, 'The diplay frequency of the training process')
     Flags.DEFINE_integer('display_freq', 20, 'The diplay frequency of the training process')
-    Flags.DEFINE_integer('summary_freq', 100, 'The frequency of writing summary')
+    Flags.DEFINE_integer('summary_freq', 1, 'The frequency of writing summary')
     Flags.DEFINE_integer('save_freq', 10, 'The frequency of saving checkpoints')
     Flags.DEFINE_integer('dev_freq', 1, 'The frequency of saving dev summary')
     Flags.DEFINE_float('EPS', 1.e-12, 'Threshold for loss computations inside the log')
