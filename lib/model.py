@@ -554,30 +554,28 @@ class TEGAN(object):
             raise RuntimeError("Cannot optimize if not in train mode!!!")
 
         for i in range(self.FLAGS.max_iter):
+
+            get_summary = False
+            if ( (i+1) % self.FLAGS.summary_freq):
+                get_summary = True
+            
             try:
-                if ( (i+1) % self.FLAGS.gen_freq) == 0:
+                if (i >= self.FLAGS.gen_start) and ( (i+1) % self.FLAGS.gen_freq == 0 ):
                     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                     run_metadata = tf.RunMetadata()
 
-                    d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) ,
-                                                                        feed_dict={self.handle: self.iterator_train_handle},
-                                                                        options=run_options,
-                                                                        run_metadata=run_metadata)
-
-                    self.summary_writer_train.add_run_metadata(run_metadata, 'step%06d' % step)
-                    self.summary_writer_train.add_summary(summary, step)
-
-                    if ( (i+1) % (self.FLAGS.gen_freq*self.FLAGS.dev_freq) )  == 0:
-                        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-                        run_metadata = tf.RunMetadata()
-
-                        d_loss_dev, g_loss_dev, summary = session.run( (self.discrim_loss, self.gen_loss, self.merged_summary) ,
-                                                                            feed_dict={self.handle: self.iterator_dev_handle},
+                    if get_summary:
+                        d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) ,
+                                                                            feed_dict={self.handle: self.iterator_train_handle},
                                                                             options=run_options,
                                                                             run_metadata=run_metadata)
-
-                        self.summary_writer_dev.add_run_metadata(run_metadata, 'step%06d' % step)
-                        self.summary_writer_dev.add_summary(summary, step)
+                        self.summary_writer_train.add_run_metadata(run_metadata, 'step%06d' % step)
+                        self.summary_writer_train.add_summary(summary, step)
+                    else:
+                        d_loss, g_loss, train, step = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step),
+                                                                   feed_dict={self.handle: self.iterator_train_handle},
+                                                                   options=run_options,
+                                                                   run_metadata=run_metadata)
 
 
                     with open(self.FLAGS.log_file, 'a') as f:
@@ -585,8 +583,27 @@ class TEGAN(object):
                         f.flush()
                     print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
                 else:
-                    d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step), feed_dict={self.handle: self.iterator_train_handle})
+                    if get_summary:
+                        d_loss, train, step, summary = session.run( (self.discrim_loss, self.discrim_train, self.global_step, self.merged_summary),
+                                                                    feed_dict={self.handle: self.iterator_train_handle})
+                        self.summary_writer_train.add_run_metadata(run_metadata, 'step%06d' % step)
+                        self.summary_writer_train.add_summary(summary, step)
+                    else:
+                        d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step), feed_dict={self.handle: self.iterator_train_handle})
                     print("Iteration {}: discriminator loss = {}".format(i, d_loss))
+
+                if ( (i+1) % (self.FLAGS.dev_freq) )  == 0:
+                    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                    run_metadata = tf.RunMetadata()
+
+                    d_loss_dev, g_loss_dev, summary = session.run( (self.discrim_loss, self.gen_loss, self.merged_summary) ,
+                                                                        feed_dict={self.handle: self.iterator_dev_handle},
+                                                                        options=run_options,
+                                                                        run_metadata=run_metadata)
+
+                    self.summary_writer_dev.add_run_metadata(run_metadata, 'step%06d' % step)
+                    self.summary_writer_dev.add_summary(summary, step)
+
 
             except tf.errors.OutOfRangeError:
                 # training terminated

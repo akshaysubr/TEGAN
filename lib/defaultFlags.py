@@ -40,6 +40,7 @@ def defaultFlags():
     Flags.DEFINE_float('beta', 0.9, 'The beta1 parameter for the Adam optimizer')
     Flags.DEFINE_integer('max_epoch', 100, 'The max epoch for the training')
     Flags.DEFINE_integer('max_iter', 1000, 'The max iteration of the training')
+    Flags.DEFINE_integer('gen_start', 0, 'Iterations after which to start generator training')
     Flags.DEFINE_integer('gen_freq', 1, 'The diplay frequency of the training process')
     Flags.DEFINE_integer('display_freq', 20, 'The diplay frequency of the training process')
     Flags.DEFINE_integer('summary_freq', 1, 'The frequency of writing summary')
