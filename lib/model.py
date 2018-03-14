@@ -385,13 +385,58 @@ class TEGAN(object):
             with tf.variable_scope('discriminator', reuse=True):
                 self.discrim_real_output = discriminator(self.next_batch_HR, FLAGS=FLAGS)
 
+        # Summary
+        tf.summary.image("High resolution", self.next_batch_HR[0:1,:,:,0,0:1]  )
+        tf.summary.image("Low resolution", self.next_batch_LR[0:1,:,:,0,0:1]  )
+        tf.summary.image("Generated", self.gen_output[0:1,:,:,0,0:1]  )
+        tf.summary.image("Concat", tf.concat( [self.next_batch_HR[0:1,:,:,0,0:1], self.gen_output[0:1,:,:,0,0:1]], axis=2 ))
+        
         # Calculating the generator loss
         with tf.variable_scope('generator_loss'):
 
+            dx = 2.*np.pi/(4.*self.FLAGS.input_size) 
+
+            vel_grad = ops.get_velocity_grad(self.gen_output, dx, dx, dx) 
+            vel_grad_HR = ops.get_velocity_grad(self.next_batch_HR, dx, dx, dx) 
+            strain_rate_2_HR = tf.reduce_mean( tf.reduce_mean( tf.reduce_mean( \
+                               ops.get_strain_rate_mag2(vel_grad_HR), axis=1, keep_dims=True), \
+                               axis=2, keep_dims=True), axis=3, keep_dims=True)
+
+            self.continuity_res = ops.get_continuity_residual(vel_grad) 
+            self.pressure_res = ops.get_pressure_residual(self.gen_output, vel_grad, dx, dx, dx) 
+
+            tke_gen = ops.get_TKE(self.gen_output) 
+            tke_hr  = ops.get_TKE(self.next_batch_HR) 
+            tke_hr_mean2 = tf.reduce_mean( tf.reduce_mean( tf.reduce_mean( \
+                           tf.square(tke_hr), axis=1, keep_dims=True), axis=2, keep_dims=True), axis=3, keep_dims=True )
+            self.tke_loss = tf.reduce_mean( tf.square(tke_gen-tke_hr) / tke_hr_mean2 )
+
+            vorticity_gen = ops.get_vorticity(vel_grad) 
+            vorticity_hr  = ops.get_vorticity(vel_grad_HR) 
+            # self.vorticity_loss = tf.reduce_mean(tf.square(vorticity_gen-vorticity_hr)) 
+ 
+            ens_gen = ops.get_enstrophy(vorticity_gen) 
+            ens_hr  = ops.get_enstrophy(vorticity_hr) 
+            ens_hr_mean2 = tf.reduce_mean( tf.reduce_mean( tf.reduce_mean( \
+                           tf.square(ens_hr), axis=1, keep_dims=True), axis=2, keep_dims=True), axis=3, keep_dims=True )
+            self.ens_loss = tf.reduce_mean( tf.square(ens_gen-ens_hr) / ens_hr_mean2 )
+
+            # Compute the euclidean distance between the two features
+            mse_hr_mean2 = tf.reduce_mean( tf.reduce_mean( tf.reduce_mean( \
+                           tf.square(self.next_batch_HR), axis=1, keep_dims=True), axis=2, keep_dims=True), axis=3, keep_dims=True )
+            self.mse_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) / mse_hr_mean2 )
+
             # Content loss
             with tf.variable_scope('content_loss'):
-                # Compute the euclidean distance between the two features
-                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) ) / tf.reduce_mean( tf.square(self.next_batch_HR) )
+                # Content loss => mse + enstrophy
+                self.content_loss = (1 - self.FLAGS.lambda_ens) * self.mse_loss + self.FLAGS.lambda_ens * self.ens_loss
+
+            # Physics loss 
+            with tf.variable_scope('physics_loss'): 
+                self.continuity_loss = tf.reduce_mean( tf.square(self.continuity_res) / strain_rate_2_HR )
+                self.pressure_loss = tf.reduce_mean( tf.square(self.pressure_res) / strain_rate_2_HR**2 )
+
+                self.physics_loss = (1 - self.FLAGS.lambda_con) * self.pressure_loss + self.FLAGS.lambda_con * self.continuity_loss
 
             with tf.variable_scope('adversarial_loss'):
                 if (FLAGS.GAN_type == 'GAN'):
@@ -400,44 +445,23 @@ class TEGAN(object):
                 if (FLAGS.GAN_type == 'WGAN_GP'):
                     self.adversarial_loss = tf.reduce_mean(-self.discrim_fake_output)
 
-            self.gen_loss = (1 - FLAGS.adversarial_ratio) * self.content_loss + (FLAGS.adversarial_ratio) * self.adversarial_loss
-
-            # Physics loss 
-            with tf.variable_scope('physics_loss'): 
-                dx = 2.*np.pi/(4.*self.FLAGS.input_size) 
-
-                vel_grad = ops.get_velocity_grad(self.gen_output, dx, dx, dx) 
-                vel_grad_HR = ops.get_velocity_grad(self.next_batch_HR, dx, dx, dx) 
-                self.continuity_res = ops.get_continuity_residual(vel_grad) 
-                self.pressure_res = ops.get_pressure_residual(self.gen_output, vel_grad, dx, dx, dx) 
-
-                self.continuity_loss = tf.sqrt(tf.reduce_mean(tf.square(self.continuity_res))) 
-                self.pressure_loss = tf.sqrt(tf.reduce_mean(tf.square(self.pressure_res))) 
-
-                tke_gen = ops.get_TKE(self.gen_output) 
-                tke_hr  = ops.get_TKE(self.next_batch_HR) 
-                self.tke_loss = tf.reduce_mean(tf.square(tke_gen-tke_hr)) / tf.reduce_mean(tf.square(tke_hr))
-
-                vorticity_gen = ops.get_vorticity(vel_grad) 
-                vorticity_hr  = ops.get_vorticity(vel_grad_HR) 
-                # self.vorticity_loss = tf.reduce_mean(tf.square(vorticity_gen-vorticity_hr)) 
- 
-                ens_gen = ops.get_enstrophy(vorticity_gen) 
-                ens_hr  = ops.get_enstrophy(vorticity_hr) 
-                self.ens_loss = tf.reduce_mean(tf.square(ens_gen-ens_hr)) / tf.reduce_mean(tf.square(ens_hr))
+            self.gen_loss = (1 - self.FLAGS.lambda_phy) * self.content_loss + self.FLAGS.lambda_phy * self.physics_loss
+            self.gen_loss = (1 - self.FLAGS.adversarial_ratio) * self.gen_loss + (self.FLAGS.adversarial_ratio) * self.adversarial_loss
 
         tf.summary.scalar('Generator loss', self.gen_loss) 
         tf.summary.scalar('Adversarial loss', self.adversarial_loss) 
         tf.summary.scalar('Content loss', self.content_loss) 
-        tf.summary.scalar('Continuity loss', self.continuity_loss) 
-        tf.summary.scalar('Pressure loss', self.pressure_loss) 
-        tf.summary.scalar('TKE loss', self.tke_loss) 
+        tf.summary.scalar('Physics loss', self.physics_loss) 
+        tf.summary.scalar('MSE error', tf.sqrt( self.mse_loss) ) 
+        tf.summary.scalar('Continuity error', tf.sqrt( self.continuity_loss) )
+        tf.summary.scalar('Pressure error', tf.sqrt(self.pressure_loss) )
+        tf.summary.scalar('TKE error', tf.sqrt(self.tke_loss) )
         # tf.summary.scalar('Vorticity loss', self.vorticity_loss) 
-        tf.summary.scalar('Enstrophy loss', self.ens_loss) 
+        tf.summary.scalar('Enstrophy error', tf.sqrt(self.ens_loss) )
 
         tf.summary.image('Z - Continuity residual',self.continuity_res[0:1,:,:,0,0:1])
         tf.summary.image('Z - Pressure residual',self.pressure_res[0:1,:,:,0,0:1])
-
+        
         # Create a new instance of the discriminator for gradient penalty
         if (FLAGS.GAN_type == 'WGAN_GP'):
             eps_WGAN = tf.random_uniform(shape=[FLAGS.batch_size, 1, 1, 1, 1], minval = 0., maxval = 1.)
@@ -500,10 +524,6 @@ class TEGAN(object):
         self.weights_initializer_g = tf.train.Saver(gen_tvars)
 
         # Summary
-        tf.summary.image("High resolution", self.next_batch_HR[0:1,:,:,0,0:1]  )
-        tf.summary.image("Low resolution", self.next_batch_LR[0:1,:,:,0,0:1]  )
-        tf.summary.image("Generated", self.gen_output[0:1,:,:,0,0:1]  )
-        tf.summary.image("Concat", tf.concat( [self.next_batch_HR[0:1,:,:,0,0:1], self.gen_output[0:1,:,:,0,0:1]], axis=2 ))
         tf.summary.scalar("Discriminator fake output", self.discrim_fake_output[0,0])
         self.merged_summary = tf.summary.merge_all()
 
