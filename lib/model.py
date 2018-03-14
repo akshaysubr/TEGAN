@@ -586,7 +586,6 @@ class TEGAN(object):
                     if get_summary:
                         d_loss, train, step, summary = session.run( (self.discrim_loss, self.discrim_train, self.global_step, self.merged_summary),
                                                                     feed_dict={self.handle: self.iterator_train_handle})
-                        self.summary_writer_train.add_run_metadata(run_metadata, 'step%06d' % step)
                         self.summary_writer_train.add_summary(summary, step)
                     else:
                         d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step), feed_dict={self.handle: self.iterator_train_handle})
