@@ -536,7 +536,7 @@ class TEGAN(object):
                 print("Restoring generator weights from {}".format(self.FLAGS.checkpoint))
                 self.weights_initializer_g.restore(session, self.FLAGS.checkpoint)
             elif self.FLAGS.pre_trained_model:
-                print("Restoring generator weights from {}".format(self.FLAGS.checkpoint))
+                print("Restoring model weights from {}".format(self.FLAGS.checkpoint))
                 self.weights_initializer.restore(session, self.FLAGS.checkpoint)
             else:
                 print("Restoring weights from {}".format(self.FLAGS.checkpoint))
