@@ -47,6 +47,9 @@ def defaultFlags():
     Flags.DEFINE_integer('dev_freq', 1, 'The frequency of saving dev summary')
     Flags.DEFINE_float('EPS', 1.e-12, 'Threshold for loss computations inside the log')
     Flags.DEFINE_float('adversarial_ratio', 1.e-3, 'Weighting factor for the adversarial loss')
+    Flags.DEFINE_float('lambda_ens', 0.2, 'Weighting factor for enstrophy in content loss')
+    Flags.DEFINE_float('lambda_con', 0.5, 'Weighting factor for continuity in physics loss')
+    Flags.DEFINE_float('lambda_phy', 0.1, 'Weighting factor for physics loss in generator loss')
     Flags.DEFINE_string('GAN_type', 'GAN', 'GAN_type: GAN or WGAN_GP')
     Flags.DEFINE_float('lambda_WGAN', 10., 'Weightage for gradient penalty in WGAN-GP')
     

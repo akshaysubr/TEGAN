@@ -182,44 +182,62 @@ class TEResNet(object):
         # Calculating the generator loss
         with tf.variable_scope('generator_loss'):
 
+            dx = 2.*np.pi/(4.*self.FLAGS.input_size) 
+
+            vel_grad = ops.get_velocity_grad(self.gen_output, dx, dx, dx) 
+            vel_grad_HR = ops.get_velocity_grad(self.next_batch_HR, dx, dx, dx) 
+            strain_rate_2_HR = tf.reduce_mean( tf.reduce_mean( tf.reduce_mean( \
+                               ops.get_strain_rate_mag2(vel_grad_HR), axis=1, keep_dims=True), \
+                               axis=2, keep_dims=True), axis=3, keep_dims=True)
+
+            self.continuity_res = ops.get_continuity_residual(vel_grad) 
+            self.pressure_res = ops.get_pressure_residual(self.gen_output, vel_grad, dx, dx, dx) 
+
+            tke_gen = ops.get_TKE(self.gen_output) 
+            tke_hr  = ops.get_TKE(self.next_batch_HR) 
+            tke_hr_mean2 = tf.reduce_mean( tf.reduce_mean( tf.reduce_mean( \
+                           tf.square(tke_hr), axis=1, keep_dims=True), axis=2, keep_dims=True), axis=3, keep_dims=True )
+            self.tke_loss = tf.reduce_mean( tf.square(tke_gen-tke_hr) / tke_hr_mean2 )
+
+            vorticity_gen = ops.get_vorticity(vel_grad) 
+            vorticity_hr  = ops.get_vorticity(vel_grad_HR) 
+            # self.vorticity_loss = tf.reduce_mean(tf.square(vorticity_gen-vorticity_hr)) 
+ 
+            ens_gen = ops.get_enstrophy(vorticity_gen) 
+            ens_hr  = ops.get_enstrophy(vorticity_hr) 
+            ens_hr_mean2 = tf.reduce_mean( tf.reduce_mean( tf.reduce_mean( \
+                           tf.square(ens_hr), axis=1, keep_dims=True), axis=2, keep_dims=True), axis=3, keep_dims=True )
+            self.ens_loss = tf.reduce_mean( tf.square(ens_gen-ens_hr) / ens_hr_mean2 )
+
+            # Compute the euclidean distance between the two features
+            mse_hr_mean2 = tf.reduce_mean( tf.reduce_mean( tf.reduce_mean( \
+                           tf.square(self.next_batch_HR), axis=1, keep_dims=True), axis=2, keep_dims=True), axis=3, keep_dims=True )
+            self.mse_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) / mse_hr_mean2 )
+
             # Content loss
             with tf.variable_scope('content_loss'):
-                # Compute the euclidean distance between the two features
-                self.content_loss = tf.reduce_mean( tf.square(self.gen_output - self.next_batch_HR) ) / tf.reduce_mean( tf.square(self.next_batch_HR) )
-
-            self.gen_loss = self.content_loss
+                # Content loss => mse + enstrophy
+                self.content_loss = (1 - self.FLAGS.lambda_ens) * self.mse_loss + self.FLAGS.lambda_ens * self.ens_loss
 
             # Physics loss 
             with tf.variable_scope('physics_loss'): 
-                dx = 2.*np.pi/(4.*self.FLAGS.input_size) 
+                self.continuity_loss = tf.reduce_mean( tf.square(self.continuity_res) / strain_rate_2_HR )
+                self.pressure_loss = tf.reduce_mean( tf.square(self.pressure_res) / strain_rate_2_HR**2 )
 
-                vel_grad = ops.get_velocity_grad(self.gen_output, dx, dx, dx) 
-                vel_grad_HR = ops.get_velocity_grad(self.next_batch_HR, dx, dx, dx) 
-                self.continuity_res = ops.get_continuity_residual(vel_grad) 
-                self.pressure_res = ops.get_pressure_residual(self.gen_output, vel_grad, dx, dx, dx) 
+                self.physics_loss = (1 - self.FLAGS.lambda_con) * self.pressure_loss + self.FLAGS.lambda_con * self.continuity_loss
 
-                self.continuity_loss = tf.sqrt(tf.reduce_mean(tf.square(self.continuity_res))) 
-                self.pressure_loss = tf.sqrt(tf.reduce_mean(tf.square(self.pressure_res))) 
 
-                tke_gen = ops.get_TKE(self.gen_output) 
-                tke_hr  = ops.get_TKE(self.next_batch_HR) 
-                self.tke_loss = tf.reduce_mean(tf.square(tke_gen-tke_hr)) / tf.reduce_mean(tf.square(tke_hr))
-
-                vorticity_gen = ops.get_vorticity(vel_grad) 
-                vorticity_hr  = ops.get_vorticity(vel_grad_HR) 
-                # self.vorticity_loss = tf.reduce_mean(tf.square(vorticity_gen-vorticity_hr)) 
- 
-                ens_gen = ops.get_enstrophy(vorticity_gen) 
-                ens_hr  = ops.get_enstrophy(vorticity_hr) 
-                self.ens_loss = tf.reduce_mean(tf.square(ens_gen-ens_hr)) / tf.reduce_mean(tf.square(ens_hr))
+            self.gen_loss = (1 - self.FLAGS.lambda_phy) * self.content_loss + self.FLAGS.lambda_phy * self.physics_loss
 
         tf.summary.scalar('Generator loss', self.gen_loss) 
         tf.summary.scalar('Content loss', self.content_loss) 
-        tf.summary.scalar('Continuity loss', self.continuity_loss) 
-        tf.summary.scalar('Pressure loss', self.pressure_loss) 
-        tf.summary.scalar('TKE loss', self.tke_loss) 
+        tf.summary.scalar('Physics loss', self.physics_loss) 
+        tf.summary.scalar('MSE error', tf.sqrt( self.mse_loss) ) 
+        tf.summary.scalar('Continuity error', tf.sqrt( self.continuity_loss) )
+        tf.summary.scalar('Pressure error', tf.sqrt(self.pressure_loss) )
+        tf.summary.scalar('TKE error', tf.sqrt(self.tke_loss) )
         # tf.summary.scalar('Vorticity loss', self.vorticity_loss) 
-        tf.summary.scalar('Enstrophy loss', self.ens_loss) 
+        tf.summary.scalar('Enstrophy error', tf.sqrt(self.ens_loss) )
 
         tf.summary.image('Z - Continuity residual',self.continuity_res[0:1,:,:,0,0:1])
         tf.summary.image('Z - Pressure residual',self.pressure_res[0:1,:,:,0,0:1])
@@ -295,10 +313,10 @@ class TEResNet(object):
                 print("Finished training!")
                 break
 
-        # Save after every save_freq iterations
-        if (step % self.FLAGS.save_freq) == 0:
-            print("Saving weights to {}".format(os.path.join(self.FLAGS.output_dir, 'model')))
-            self.saver.save(session, os.path.join(self.FLAGS.output_dir, 'model'), global_step=step)
+            # Save after every save_freq iterations
+            if (step % self.FLAGS.save_freq) == 0:
+                print("Saving weights to {}".format(os.path.join(self.FLAGS.output_dir, 'model')))
+                self.saver.save(session, os.path.join(self.FLAGS.output_dir, 'model'), global_step=step)
             
         return 
 

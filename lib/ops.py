@@ -221,8 +221,18 @@ def get_velocity_grad(inpt, dx, dy, dz, scope='vel_grad', name=None):
 
     return dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz
 
+
+def get_strain_rate_mag2(vel_grad, scope='strain_rate_mag', name=None):
+    dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
+
+    strain_rate_mag2 = dudx**2 + dvdy**2 + dwdz**2 \
+                     + 2*( (0.5*(dudy + dvdx))**2 + (0.5*(dudz + dwdx))**2 + (0.5*(dvdz + dwdy))**2 )
+
+    return strain_rate_mag2
+
+
 def get_vorticity(vel_grad, scope='vorticity', name=None):
-    udx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
+    dudx, dvdx, dwdx, dudy, dvdy, dwdy, dudz, dvdz, dwdz = vel_grad
     vort_x = dwdy - dvdz
     vort_y = dudz - dwdx
     vort_z = dvdx - dudy
