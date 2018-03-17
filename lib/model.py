@@ -507,11 +507,10 @@ class TEGAN(object):
             self.discrim_train = discrim_optimizer.minimize( self.discrim_loss, self.global_step )
 
         with tf.variable_scope('generator_train'):
+            gen_tvars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator')
 
             # Need to wait discriminator to perform train step
             with tf.control_dependencies( [self.discrim_train] + tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-
-                gen_tvars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator')
                 gen_optimizer = tf.train.AdamOptimizer(self.learning_rate, beta1=FLAGS.beta)
                 self.gen_train = gen_optimizer.minimize( self.gen_loss )
 
@@ -584,12 +583,12 @@ class TEGAN(object):
                     print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
                 else:
                     if get_summary:
-                        d_loss, train, step, summary = session.run( (self.discrim_loss, self.discrim_train, self.global_step, self.merged_summary),
+                        d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.discrim_train, self.global_step, self.merged_summary),
                                                                     feed_dict={self.handle: self.iterator_train_handle})
                         self.summary_writer_train.add_summary(summary, step)
                     else:
                         d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step), feed_dict={self.handle: self.iterator_train_handle})
-                    print("Iteration {}: discriminator loss = {}".format(i, d_loss))
+                    print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
 
                 if ( (i+1) % (self.FLAGS.dev_freq) )  == 0:
                     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
