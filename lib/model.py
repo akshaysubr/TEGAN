@@ -498,13 +498,15 @@ class TEGAN(object):
             self.global_step = tf.train.create_global_step()
             self.learning_rate = tf.train.exponential_decay(FLAGS.learning_rate, self.global_step, FLAGS.decay_step, FLAGS.decay_rate,
                                                             staircase=FLAGS.stair)
-            # self.incr_global_step = tf.assign(self.global_step, self.global_step + 1)
+            self.incr_global_step = tf.assign(self.global_step, self.global_step + 1)
 
         with tf.variable_scope('dicriminator_train'):
 
             discrim_tvars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='discriminator')
             discrim_optimizer = tf.train.AdamOptimizer(self.learning_rate, beta1=FLAGS.beta)
-            self.discrim_train = discrim_optimizer.minimize( self.discrim_loss, self.global_step )
+            discrim_grads_and_vars = discrim_optimizer.compute_gradients(self.discrim_loss, discrim_tvars)
+            self.discrim_train = discrim_optimizer.apply_gradients(discrim_grads_and_vars)
+            # self.discrim_train = discrim_optimizer.minimize( self.discrim_loss, self.global_step )
 
         with tf.variable_scope('generator_train'):
             gen_tvars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator')
@@ -512,7 +514,9 @@ class TEGAN(object):
             # Need to wait discriminator to perform train step
             with tf.control_dependencies( [self.discrim_train] + tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
                 gen_optimizer = tf.train.AdamOptimizer(self.learning_rate, beta1=FLAGS.beta)
-                self.gen_train = gen_optimizer.minimize( self.gen_loss )
+                gen_grads_and_vars = gen_optimizer.compute_gradients(self.gen_loss, gen_tvars)
+                self.gen_train = gen_optimizer.apply_gradients(gen_grads_and_vars)
+                # self.gen_train = gen_optimizer.minimize( self.gen_loss )
 
         exp_averager = tf.train.ExponentialMovingAverage(decay=0.99)
         self.update_loss = exp_averager.apply([self.discrim_loss, self.content_loss, self.adversarial_loss])
@@ -564,14 +568,14 @@ class TEGAN(object):
                     run_metadata = tf.RunMetadata()
 
                     if get_summary:
-                        d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step, self.merged_summary) ,
+                        d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.incr_global_step, self.merged_summary) ,
                                                                             feed_dict={self.handle: self.iterator_train_handle},
                                                                             options=run_options,
                                                                             run_metadata=run_metadata)
                         self.summary_writer_train.add_run_metadata(run_metadata, 'step%06d' % step)
                         self.summary_writer_train.add_summary(summary, step)
                     else:
-                        d_loss, g_loss, train, step = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.global_step),
+                        d_loss, g_loss, train, step = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.incr_global_step),
                                                                    feed_dict={self.handle: self.iterator_train_handle},
                                                                    options=run_options,
                                                                    run_metadata=run_metadata)
@@ -583,23 +587,16 @@ class TEGAN(object):
                     print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
                 else:
                     if get_summary:
-                        d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.discrim_train, self.global_step, self.merged_summary),
+                        d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.content_loss, self.discrim_train, self.incr_global_step, self.merged_summary),
                                                                     feed_dict={self.handle: self.iterator_train_handle})
                         self.summary_writer_train.add_summary(summary, step)
                     else:
-                        d_loss, train, step = session.run( (self.discrim_loss, self.discrim_train, self.global_step), feed_dict={self.handle: self.iterator_train_handle})
-                    print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
+                        d_loss, g_loss, train, step = session.run( (self.discrim_loss, self.content_loss, self.discrim_train, self.incr_global_step), feed_dict={self.handle: self.iterator_train_handle})
+                    print("Iteration {}: discriminator loss = {}, content loss = {}    Only training the discriminator".format(i, d_loss, g_loss))
 
                 if ( (i+1) % (self.FLAGS.dev_freq) )  == 0:
-                    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-                    run_metadata = tf.RunMetadata()
-
                     d_loss_dev, g_loss_dev, summary = session.run( (self.discrim_loss, self.gen_loss, self.merged_summary) ,
-                                                                        feed_dict={self.handle: self.iterator_dev_handle},
-                                                                        options=run_options,
-                                                                        run_metadata=run_metadata)
-
-                    self.summary_writer_dev.add_run_metadata(run_metadata, 'step%06d' % step)
+                                                                        feed_dict={self.handle: self.iterator_dev_handle} )
                     self.summary_writer_dev.add_summary(summary, step)
 
 

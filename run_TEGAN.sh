@@ -30,7 +30,7 @@ PHY=0.125
 SUFFIX_RESNET="_RB${RESBLOCKS}_LR${LEARNING_RATE}_ENS${ENS}_CON${CON}_PHY${PHY}"
 SUFFIX="_RB${RESBLOCKS}_LR${LEARNING_RATE}_ENS${ENS}_CON${CON}_PHY${PHY}_GS${GENSTART}_GF${GENFREQ}_AR${ADVERSARIAL_RATIO}"
 
-CMD="python main.py --task ${TASK} --checkpoint /farmshare/user_data/${USER}/TEGAN/TEResNet/output${SUFFIX_RESNET}/model-9200 --pre_trained_generator True --num_resblock ${RESBLOCKS} --learning_rate ${LEARNING_RATE} --gen_start ${GENSTART} --gen_freq ${GENFREQ} --adversarial_ratio ${ADVERSARIAL_RATIO} --train_dir /farmshare/user_data/${USER}/TEGAN/Data/train --dev_dir /farmshare/user_data/${USER}/TEGAN/Data/dev --max_iter 10000 --max_epoch 50 --save_freq 100 --summary_freq 10 --output_dir /farmshare/user_data/${USER}/TEGAN/${TASK}/output${SUFFIX} --summary_dir /farmshare/user_data/${USER}/TEGAN/${TASK}/summary${SUFFIX} --log_file /farmshare/user_data/${USER}/TEGAN/${TASK}/log${SUFFIX}.dat"
+CMD="python main.py --task ${TASK} --checkpoint /farmshare/user_data/${USER}/TEGAN/TEResNet/output${SUFFIX_RESNET}/model-9200 --pre_trained_generator True --num_resblock ${RESBLOCKS} --learning_rate ${LEARNING_RATE} --gen_start ${GENSTART} --gen_freq ${GENFREQ} --adversarial_ratio ${ADVERSARIAL_RATIO} --lambda_ens ${ENS} --lambda_con ${CON} --lambda_phy ${PHY} --train_dir /farmshare/user_data/${USER}/TEGAN/Data/train --dev_dir /farmshare/user_data/${USER}/TEGAN/Data/dev --max_iter 10000 --max_epoch 50 --save_freq 100 --summary_freq 10 --output_dir /farmshare/user_data/${USER}/TEGAN/${TASK}/output${SUFFIX} --summary_dir /farmshare/user_data/${USER}/TEGAN/${TASK}/summary${SUFFIX} --log_file /farmshare/user_data/${USER}/TEGAN/${TASK}/log${SUFFIX}.dat"
 
 echo ${CMD}
 
