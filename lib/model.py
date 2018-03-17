@@ -587,12 +587,12 @@ class TEGAN(object):
                     print("Iteration {}: discriminator loss = {}, generator loss = {}".format(i, d_loss, g_loss))
                 else:
                     if get_summary:
-                        d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.content_loss, self.discrim_train, self.incr_global_step, self.merged_summary),
+                        d_loss, g_loss, a_loss, train, step, summary = session.run( (self.discrim_loss, self.content_loss, self.adversarial_loss, self.discrim_train, self.incr_global_step, self.merged_summary),
                                                                     feed_dict={self.handle: self.iterator_train_handle})
                         self.summary_writer_train.add_summary(summary, step)
                     else:
-                        d_loss, g_loss, train, step = session.run( (self.discrim_loss, self.content_loss, self.discrim_train, self.incr_global_step), feed_dict={self.handle: self.iterator_train_handle})
-                    print("Iteration {}: discriminator loss = {}, content loss = {}    Only training the discriminator".format(i, d_loss, g_loss))
+                        d_loss, g_loss, a_loss, train, step = session.run( (self.discrim_loss, self.content_loss, self.adversarial_loss, self.discrim_train, self.incr_global_step), feed_dict={self.handle: self.iterator_train_handle})
+                    print("Iteration {}: discriminator loss = {}, content loss = {}, adversarial loss = {}    Only training the discriminator".format(i, d_loss, g_loss, a_loss))
 
                 if ( (i+1) % (self.FLAGS.dev_freq) )  == 0:
                     d_loss_dev, g_loss_dev, summary = session.run( (self.discrim_loss, self.gen_loss, self.merged_summary) ,
