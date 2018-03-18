@@ -36,6 +36,8 @@ CMD="python main.py \
 --task ${TASK} \
 --num_resblock ${RESBLOCKS} \
 --learning_rate ${LEARNING_RATE} \
+--decay_rate ${DECAY_RATE} \
+--decay_step ${DECAY_STEP} \
 --gen_start ${GENSTART} \
 --gen_freq ${GENFREQ} \
 --adversarial_ratio ${ADVERSARIAL_RATIO} \
