@@ -36,7 +36,7 @@ def defaultFlags():
     Flags.DEFINE_float('learning_rate', 0.0001, 'The learning rate for the network')
     Flags.DEFINE_integer('decay_step', 500000, 'The steps needed to decay the learning rate')
     Flags.DEFINE_float('decay_rate', 1.0, 'The decay rate of each decay step')
-    Flags.DEFINE_boolean('stair', False, 'Whether perform staircase decay. True => decay in discrete interval.')
+    Flags.DEFINE_boolean('stair', True, 'Whether perform staircase decay. True => decay in discrete interval.')
     Flags.DEFINE_float('beta', 0.9, 'The beta1 parameter for the Adam optimizer')
     Flags.DEFINE_integer('max_epoch', 100, 'The max epoch for the training')
     Flags.DEFINE_integer('max_iter', 1000, 'The max iteration of the training')
