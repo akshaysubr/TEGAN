@@ -262,6 +262,8 @@ class TEResNet(object):
         exp_averager = tf.train.ExponentialMovingAverage(decay=0.99)
         self.update_loss = exp_averager.apply([self.content_loss])
 
+        tf.summary.scalar('Learning rate', self.learning_rate) 
+
         # Define data saver
         self.saver = tf.train.Saver(max_to_keep=10)
         self.weights_initializer = tf.train.Saver(gen_tvars)
@@ -528,6 +530,7 @@ class TEGAN(object):
 
         # Summary
         tf.summary.scalar("Discriminator fake output", self.discrim_fake_output[0,0])
+        tf.summary.scalar("Learning rate", self.learning_rate)
         self.merged_summary = tf.summary.merge_all()
 
     def initialize(self, session):
