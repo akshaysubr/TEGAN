@@ -567,21 +567,14 @@ class TEGAN(object):
             
             try:
                 if (i >= self.FLAGS.gen_start) and ( (i+1) % self.FLAGS.gen_freq == 0 ):
-                    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-                    run_metadata = tf.RunMetadata()
 
                     if get_summary:
                         d_loss, g_loss, train, step, summary = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.incr_global_step, self.merged_summary) ,
-                                                                            feed_dict={self.handle: self.iterator_train_handle},
-                                                                            options=run_options,
-                                                                            run_metadata=run_metadata)
-                        self.summary_writer_train.add_run_metadata(run_metadata, 'step%06d' % step)
+                                                                            feed_dict={self.handle: self.iterator_train_handle})
                         self.summary_writer_train.add_summary(summary, step)
                     else:
                         d_loss, g_loss, train, step = session.run( (self.discrim_loss, self.gen_loss, self.gen_train, self.incr_global_step),
-                                                                   feed_dict={self.handle: self.iterator_train_handle},
-                                                                   options=run_options,
-                                                                   run_metadata=run_metadata)
+                                                                   feed_dict={self.handle: self.iterator_train_handle})
 
 
                     with open(self.FLAGS.log_file, 'a') as f:
