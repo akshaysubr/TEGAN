@@ -9,8 +9,12 @@ def get_tags_from_event(filename):
     with sess.as_default():
         for event in tf.train.summary_iterator(filename):
             if (i==0):
+                printed = 0;
                 for val in event.summary.value:
                     print(val.tag)
+                    printed = 1
+                if (printed):
+                    i = 1
             else:
                 break;
     return;
@@ -62,7 +66,7 @@ def read_summary_value(filename, tag='MSE error'):
         for event in tf.train.summary_iterator(filename):
             for val in event.summary.value:
                 if val.tag == tag:
-                    value.append(v.simple_value)
+                    value.append(val.simple_value)
 
     return value
 
