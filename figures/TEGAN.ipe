@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE ipe SYSTEM "ipe.dtd">
 <ipe version="70206" creator="Ipe 7.2.7">
-<info created="D:20180224155354" modified="D:20180319163244"/>
+<info created="D:20180224155354" modified="D:20180319163816"/>
 <bitmap id="1" width="451" height="451" length="162761" ColorSpace="DeviceRGB" Filter="FlateDecode" BitsPerComponent="8" encoding="base64">
 eNq8vQd3VVe27/kRut/t1/e+d/s1SCKjhEAkiYwCQWRMMjnnLEBZQlk655BNMDbJ2C7bZbsc
 y+WMbZwqOEds34/Sc6651lxzhX0Qrno9xhweslA6+6z92/+Zp8+cP62qYVp1D9h0sKru6RXd
@@ -4594,9 +4594,6 @@ h
 <text matrix="1 0 0 1 388 -512" transformations="translations" pos="132 780" stroke="black" type="label" width="36.657" height="6.227" depth="0" valign="baseline" size="small">k3n512s2</text>
 <text matrix="1 0 0 1 436 -512" transformations="translations" pos="132 780" stroke="black" type="label" width="41.264" height="6.227" depth="0" valign="baseline" size="small">k3n1024s1</text>
 <text matrix="1 0 0 1 484 -512" transformations="translations" pos="132 780" stroke="black" type="label" width="41.264" height="6.227" depth="0" valign="baseline" size="small">k3n1024s2</text>
-<image matrix="3.96723 -0.0152109 0.0152109 3.96723 -1596.62 -823.786" rect="417.5 294 425.5 302" bitmap="25"/>
-<image matrix="3.94552 -0.0151276 0.997152 1.96319 -1875.95 -202.624" rect="417.5 294 425.5 302" bitmap="25"/>
-<image matrix="-0.0147077 -3.93695 0.978759 1.94681 -185.294 1439.15" rect="417.5 294 425.5 302" bitmap="25"/>
 <path matrix="1 0 0 1 32 -400" stroke="black" pen="fat">
 64 768 m
 72 784 l
@@ -4607,10 +4604,13 @@ h
 </path>
 <image matrix="3.96723 -0.0152109 0.0152109 3.96723 -1566.76 -764.123" rect="417.5 294 425.5 302" bitmap="25"/>
 <image matrix="3.94552 -0.0151276 0.997152 1.96319 -1846.09 -142.961" rect="417.5 294 425.5 302" bitmap="25"/>
+<image matrix="3.96723 -0.0152109 0.0152109 3.96723 -1576.69 -783.926" rect="417.5 294 425.5 302" bitmap="25"/>
 <image matrix="3.96723 -0.0152109 0.0152109 3.96723 -1586.77 -803.795" rect="417.5 294 425.5 302" bitmap="25"/>
+<image matrix="3.96723 -0.0152109 0.0152109 3.96723 -1596.62 -823.786" rect="417.5 294 425.5 302" bitmap="25"/>
+<image matrix="3.94552 -0.0151276 0.997152 1.96319 -1875.95 -202.624" rect="417.5 294 425.5 302" bitmap="25"/>
+<image matrix="-0.0147077 -3.93695 0.978759 1.94681 -185.294 1439.15" rect="417.5 294 425.5 302" bitmap="25"/>
 <image matrix="3.94552 -0.0151276 0.997152 1.96319 -1866.1 -182.633" rect="417.5 294 425.5 302" bitmap="25"/>
 <image matrix="-0.0147077 -3.93695 0.978759 1.94681 -175.438 1459.13" rect="417.5 294 425.5 302" bitmap="25"/>
-<image matrix="3.96723 -0.0152109 0.0152109 3.96723 -1576.69 -783.926" rect="417.5 294 425.5 302" bitmap="25"/>
 <image matrix="3.94552 -0.0151276 0.997152 1.96319 -1856.02 -162.764" rect="417.5 294 425.5 302" bitmap="25"/>
 <image matrix="-0.0147077 -3.93695 0.978759 1.94681 -165.357 1479" rect="417.5 294 425.5 302" bitmap="25"/>
 <path matrix="1 0 0 1 32 -400" stroke="black" pen="fat">
