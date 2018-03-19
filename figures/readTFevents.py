@@ -6,18 +6,20 @@ import tensorflow as tf
 def get_tags_from_event(filename):
     sess = tf.InteractiveSession()
     i = 0;
+    tags = [];
     with sess.as_default():
         for event in tf.train.summary_iterator(filename):
             if (i==0):
                 printed = 0;
                 for val in event.summary.value:
                     print(val.tag)
+                    tags.append[val.tag]
                     printed = 1
                 if (printed):
                     i = 1
             else:
                 break;
-    return;
+    return tags
 
 def read_images_data_from_event(filename, tag):
     
@@ -69,6 +71,21 @@ def read_summary_value(filename, tag='MSE error'):
                     value.append(val.simple_value)
 
     return value
+
+def read_summaryall_value(filename):
+
+    tags = get_tags_from_event(filename)
+    summary = {}
+    for tag in tags:
+        summary[tag] = []        
+    
+    sess = tf.InteractiveSession()
+    with sess.as_default():
+        for event in tf.train.summary_iterator(filename):
+            for val in event.summary.value:
+                summary[tag].append(val.simple_value)
+
+    return summary
 
 def get_scaled_image_data(filename, ind_start=0, ind_step=10000, ind_end=-1):
     tag_hr = 'High_resolution/image/0'
