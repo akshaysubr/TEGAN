@@ -30,7 +30,7 @@ Comparison of the power spectral density of the high-resolution (blue) and low-r
 We will use GANs[[2]](https://arxiv.org/pdf/1406.2661.pdf) in a fashion similar to super-resolution applications for image data [[3]](https://arxiv.org/pdf/1609.04802.pdf). We will also include the physics realizability constraint through a term in the loss function similar to the physics informed deep learning method in [[4]](https://arxiv.org/pdf/1711.10561.pdf).
 
 ResNet for Turbulence Enrichment:
-![ResNet](figures/NN.png "ResNet")
+![ResNet](figures/TEResNet.png "ResNet")
 
 ### Current work
 We first start by training the generator netowrk without adversarial component using TEResNet. Its architechture is similar to SRResnet but with 4 ResNet blocks for the intial ease of testing and compute time. This will be extended and tested with deeper network of up to 16 ResNet blocks in the future and use the resulting weights to initialize the generator network of TEGAN. MSE-based content loss between the output high resolution flow solution and the input low resolution is used to train the network. The arhitechture of the TEResNet is shown in Figure 1.

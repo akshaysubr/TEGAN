@@ -51,7 +51,7 @@ CMD="python main.py \
 --save_freq 100 \
 --summary_freq 10 \
 --train_dir /farmshare/user_data/${USER}/TEGAN/Data/train \
---dev_dir /farmshare/user_data/${USER}/TEGAN/Data/test \
+--dev_dir /farmshare/user_data/${USER}/TEGAN/Data/dev \
 --output_dir /farmshare/user_data/${USER}/TEGAN/${TASK}/output${SUFFIX} \
 --summary_dir /farmshare/user_data/${USER}/TEGAN/${TASK}/summary${SUFFIX} \
 --log_file /farmshare/user_data/${USER}/TEGAN/${TASK}/log${SUFFIX}.dat \
