@@ -9,6 +9,31 @@ import sys
 
 varindices = {'u': 0, 'v': 1, 'w': 2, 'p': 3}
 
+def bicubic_interpolation(LR, HR_shape):
+
+    LR_padded = np.zeros((LR.shape[0]+1,LR.shape[1]+1,LR.shape[2]+1))
+    LR_padded[:-1,:-1,:-1] = LR[:,:,:]
+    LR_padded[-1,:-1,:-1] = LR[0,:,:]
+    LR_padded[:-1,-1,:-1] = LR[:,0,:]
+    LR_padded[:-1,:-1,-1] = LR[:,:,0]
+    LR_padded[:-1,-1,-1] = LR[:,0,0]
+    LR_padded[-1,:-1,-1] = LR[0,:,0]
+    LR_padded[-1,-1,:-1] = LR[0,0,:]
+    LR_padded[-1,-1,-1] = LR[0,0,0]
+    
+    x_HR = np.linspace(0, LR.shape[0], num=HR_shape[0]+1)[:-1]
+    y_HR = np.linspace(0, LR.shape[1], num=HR_shape[1]+1)[:-1]
+    z_HR = np.linspace(0, LR.shape[2], num=HR_shape[2]+1)[:-1]
+    
+    xx, yy, zz = np.meshgrid(x_HR, y_HR, z_HR, indexing='ij')
+    
+    xx = xx.reshape((-1))
+    yy = yy.reshape((-1))
+    zz = zz.reshape((-1))
+    out_BC = ndimage.map_coordinates(LR_padded, [xx, yy, zz], order=3, mode='wrap').reshape(HR_shape)
+    
+    return out_BC
+
 def plot(var, ax, extent=(0, 2.*np.pi,0, 2.*np.pi), vmin=None, vmax=None, cmap=None):
     # if vmin == None:
     #     vmin = var.min()
@@ -61,6 +86,7 @@ def make_comparison_plots(LR, HR, out, output_label='Generated output'):
     fig.tight_layout()
     
     return fig, (ax1, ax2, ax3, ax4)
+
 
 
 def convert_to_rgb(a, vmin, vmax,  cmap=plt.cm.viridis):
