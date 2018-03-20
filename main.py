@@ -4,8 +4,8 @@ import h5py
 import tensorflow as tf
 
 from lib.defaultFlags import defaultFlags
-from lib.model import TEResNet, TEGAN
-from lib.ops import print_configuration_op
+from lib.TEResNet import TEResNet
+from lib.TEGAN import TEGAN
 from lib.readTFRecord import getTFRecordFilenamesIn 
 
 FLAGS = defaultFlags()
