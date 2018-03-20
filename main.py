@@ -42,20 +42,26 @@ else:
     raise ValueError('Need to specify FLAGS.task to be TEResNet or TEGAN')
 
 with tf.Session() as sess:
-    net.initialize(sess)
+    print("--------------- {} mode -----------------".format(FLAGS.mode))
+    net.initialize(sess)    
     print("Finished initializing :D")
 
     if FLAGS.mode == 'train':
         net.optimize(sess)
 
     elif FLAGS.mode == 'test':
-        HR, LR, HR_out, loss = net.evaluate(sess)
+        filenames_test = getTFRecordFilenamesIn(FLAGS.test_dir)
+        output = net.evaluate(sess, filenames_test)
+        losses = net.evaluate_losses(sess, filenames_test)
 
-        print("Saving test data to {}".format(os.path.join(FLAGS.output_dir, 'test_data.h5')))
-        h5f = h5py.File(os.path.join(FLAGS.output_dir, 'test_data.h5'), 'w')
-        h5f.create_dataset('HR', data=HR)
-        h5f.create_dataset('LR', data=LR)
-        h5f.create_dataset('output', data=HR_out)
+        filename_out = os.path.basename(filenames_test[0]).replace('.tfrecord','.h5')
+        print("Saving test data to {}".format(os.path.join(FLAGS.output_dir, filename_out)))
+        h5f = h5py.File(os.path.join(FLAGS.output_dir, filename_out), 'w')
+        h5f.create_dataset('HR', data=output[0][0])
+        h5f.create_dataset('LR', data=output[0][1])
+        h5f.create_dataset('output', data=output[0][2])
         h5f.close()
 
-        print("Test loss: ", loss)
+        for loss, val in losses.items():
+            print("{0:26s} = {1:0.6f}".format(loss,np.mean(val)))
+    print("--------------- ******** -----------------")

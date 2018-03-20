@@ -327,6 +327,51 @@ class TEResNet(object):
         return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss),
                             feed_dict={self.handle: self.iterator_train_handle} )
 
+    def evaluate(self, session, filenames_test):
+        
+        dataset_test = tf.data.TFRecordDataset(filenames_test)
+        dataset_test = dataset_test.map(parseTFRecordExample)
+        dataset_test = dataset_test.repeat(1)
+        dataset_test = dataset_test.batch(1)
+
+        iterator_test = dataset_test.make_one_shot_iterator()
+        iterator_test_handle = session.run(iterator_test.string_handle())
+
+        output = []
+
+        for i in range(len(filenames_test)):
+            output.append(session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output ), feed_dict={self.handle: iterator_test_handle}))
+
+        return output
+
+    def evaluate_losses(self, session, filenames_test):
+
+        dataset_test = tf.data.TFRecordDataset(filenames_test)
+        dataset_test = dataset_test.map(parseTFRecordExample)
+        dataset_test = dataset_test.repeat(1)
+        dataset_test = dataset_test.batch(self.FLAGS.batch_size)
+
+        iterator_test = dataset_test.make_one_shot_iterator()
+        iterator_test_handle = session.run(iterator_test.string_handle())
+
+        output = {'gen_loss':[],\
+                  'content_loss':[], 'mse_loss':[], 'enstrophy_loss':[], \
+                  'physics_loss':[], 'continuity_loss':[], 'pressure_loss':[]}
+
+        for i in range(len(filenames_test)):
+            losses = session.run( ( self.gen_loss, \
+                                    self.content_loss, self.mse_loss, self.ens_loss, \
+                                    self.physics_loss, self.continuity_loss, self.pressure_loss), feed_dict={self.handle: iterator_test_handle})
+            output['gen_loss'].append(losses[0]);
+            output['content_loss'].append(losses[1]);
+            output['mse_loss'].append(losses[2]);
+            output['enstrophy_loss'].append(losses[3]);
+            output['physics_loss'].append(losses[4]);
+            output['continuity_loss'].append(losses[5]);
+            output['pressure_loss'].append(losses[6]);
+
+        return output
+    
 
 class TEGAN(object):
 
@@ -610,6 +655,54 @@ class TEGAN(object):
         return
 
 
-    def evaluate(self, session):
-        return session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output, self.gen_loss ), feed_dict={self.handle: self.iterator_train_handle})
+    def evaluate(self, session, filenames_test):
+        
+        dataset_test = tf.data.TFRecordDataset(filenames_test)
+        dataset_test = dataset_test.map(parseTFRecordExample)
+        dataset_test = dataset_test.repeat(1)
+        dataset_test = dataset_test.batch(1)
 
+        iterator_test = dataset_test.make_one_shot_iterator()
+        iterator_test_handle = session.run(iterator_test.string_handle())
+
+        output = []
+
+        for i in range(len(filenames_test)):
+            output.append(session.run( ( self.next_batch_HR, self.next_batch_LR, self.gen_output ), feed_dict={self.handle: iterator_test_handle}))
+
+        return output
+
+    def evaluate_losses(self, session, filenames_test):
+
+        dataset_test = tf.data.TFRecordDataset(filenames_test)
+        dataset_test = dataset_test.map(parseTFRecordExample)
+        dataset_test = dataset_test.repeat(1)
+        dataset_test = dataset_test.batch(self.FLAGS.batch_size)
+
+        iterator_test = dataset_test.make_one_shot_iterator()
+        iterator_test_handle = session.run(iterator_test.string_handle())
+
+        output = {'gen_loss':[],'adversarial_loss':[], \
+                  'content_loss':[], 'mse_loss':[], 'enstrophy_loss':[], \
+                  'physics_loss':[], 'continuity_loss':[], 'pressure_loss':[], \
+                  'discriminator_loss':[], 'discriminator_fake_output':[]}
+
+        for i in range(len(filenames_test)):
+            losses = session.run( ( self.gen_loss, self.adversarial_loss, \
+                                    self.content_loss, self.mse_loss, self.ens_loss, \
+                                    self.physics_loss, self.continuity_loss, self.pressure_loss, \
+                                    self.discrim_loss, self.discrim_fake_output  ), feed_dict={self.handle: iterator_test_handle})
+            output['gen_loss'].append(losses[0]);
+            output['adversarial_loss'].append(losses[1]);
+            output['content_loss'].append(losses[2]);
+            output['mse_loss'].append(losses[3]);
+            output['enstrophy_loss'].append(losses[4]);
+            output['physics_loss'].append(losses[5]);
+            output['continuity_loss'].append(losses[6]);
+            output['pressure_loss'].append(losses[7]);
+            output['discriminator_loss'].append(losses[8]);
+            output['discriminator_fake_output'].append(losses[9]);
+
+        return output
+
+        
