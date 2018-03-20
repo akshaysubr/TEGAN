@@ -51,7 +51,7 @@ with tf.Session() as sess:
 
     elif FLAGS.mode == 'test':
         filenames_test = getTFRecordFilenamesIn(FLAGS.test_dir)
-        output = net.evaluate(sess, filenames_test)
+        output = net.evaluate(sess, [ filenames_test[0] ])
         losses = net.evaluate_losses(sess, filenames_test)
 
         filename_out = os.path.basename(filenames_test[0]).replace('.tfrecord','.h5')
