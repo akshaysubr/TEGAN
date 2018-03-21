@@ -25,7 +25,7 @@ Comparison of the power spectral density of the high-resolution (blue) and low-r
 <div style="text-align:center"><img src="figures/HIT_064_spectra.svg" title="Comparison of the spectra of low and high resolution data" style="width: 400px;"></div>
 
 
-The $1260$ datasets are split into$920\ (79.3\%)$ train, $120\ (10.3\%)$ dev and $120\ (10.3\%)$ test sets.
+The $1260$ datasets are split into $920\ (79.3\%)$ train, $120\ (10.3\%)$ dev and $120\ (10.3\%)$ test sets.
 
 ## Model
 For the task of upsampling the low resolution data in a physically consistent manner, we use a GAN[[2]](https://arxiv.org/pdf/1406.2661.pdf) in a fashion similar to super-resolution applications for image data [[3]](https://arxiv.org/pdf/1609.04802.pdf). 
