@@ -6,7 +6,7 @@ Turbulent flow is important in many engineering applications. However, simulatin
 
 Modeling turbulence accurately is extremely challenging especially in capturing high order statistics due to its intermittent nature. GANs have been shown to perform better than other data driven approaches like PCA in capturing high order moments [[1]](https://arxiv.org/pdf/1708.01810.pdf). In addition, generating physically realistic realizations are important for physical simulation data; a constraint not present when using generative models for images. Incorporating this constraint into the GAN framework would be crucial to its performance. The constraint is given by the governing equations for the incompressible flow given below:
 
-<p align="center"><img alt="\begin{align*}&#10;\nabla \cdot \bm{u} &amp;= 0 \\&#10;\frac{\partial \bm{u}}{\partial t} + \left( \bm{u} \cdot \nabla \right) \bm{u} &amp;= - \nabla p + \frac{1}{\mathrm{Re}} \nabla^2 \bm{u}&#10;\end{align*}" src="figures/68ff53efbcb20ecf0dc2e6c6737fc1db.svg?invert_in_darkmode" align=middle width="317px" height="76px"/></p>
+<p align="center"><img alt="\begin{align*}&#10;\nabla \cdot \bm{u} &amp;= 0 \\&#10;\frac{\partial \bm{u}}{\partial t} + \left( \bm{u} \cdot \nabla \right) \bm{u} &amp;= - \nabla p + \frac{1}{\mathrm{Re}} \nabla^2 \bm{u}&#10;\end{align*}" src="figures/68ff53efbcb20ecf0dc2e6c6737fc1db.svg?invert_in_darkmode" align=middle width="317" height="76"/></p>
 
 
 ## Data
