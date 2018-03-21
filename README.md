@@ -17,6 +17,9 @@ Modeling turbulence accurately is extremely challenging especially in capturing 
   <img src="https://latex.codecogs.com/gif.latex?%5Cbegin%7Balign*%7D%20%5Cnabla%20%5Ccdot%20%5Cmathbf%7Bu%7D%20%26%3D%200%20%5C%5C%20%5Cfrac%7B%5Cpartial%20%5Cmathbf%7Bu%7D%7D%7B%5Cpartial%20t%7D%20&plus;%20%5Cleft%28%20%5Cmathbf%7Bu%7D%20%5Ccdot%20%5Cnabla%20%5Cright%29%20%5Cmathbf%7Bu%7D%20%26%3D%20-%5Cnabla%20p%20&plus;%20%5Cfrac%7B1%7D%7BRe%7D%20%5Cnabla%5E2%20%5Cmathbf%7Bu%7D%20%5Cend%7Balign*%7D">
 </p>
 
+<p align="center"><img src="https://rawgit.com/akshaysubr/TEGAN/master/svgs/68ff53efbcb20ecf0dc2e6c6737fc1db.svg?invert_in_darkmode" align=middle width=238.44975pt height=57.49623pt/></p>
+
+
 ### Data
 The data was generated using an in-house fluid flow simulation code (PadeOps) which was run on a compute cluster using 256 processors for multiple days. A time-evolving simulation was performed on a 64x64x64 uniform grid and the output was collected every few time steps to make our dataset. The output is comprised of four fields --- three components of the velocity vector (u, v, w) and one of the pressure (p) each of size 64x64x64. 
 
@@ -31,6 +34,10 @@ We will use GANs[[2]](https://arxiv.org/pdf/1406.2661.pdf) in a fashion similar 
 
 ResNet for Turbulence Enrichment:
 ![ResNet](figures/TEResNet.png "ResNet")
+
+<p align="center"><img src="https://rawgit.com/akshaysubr/TEGAN/master/svgs/c356ead5ad59ebf337651d4d969c9153.svg?invert_in_darkmode" align=middle width=136.649535pt height=41.518785pt/></p>
+
+<p align="center"><img src="https://rawgit.com/akshaysubr/TEGAN/master/svgs/c096094e1e978a4b3fba43a8736c342d.svg?invert_in_darkmode" align=middle width=307.8009pt height=90.950145pt/></p>
 
 ### Current work
 We first start by training the generator netowrk without adversarial component using TEResNet. Its architechture is similar to SRResnet but with 4 ResNet blocks for the intial ease of testing and compute time. This will be extended and tested with deeper network of up to 16 ResNet blocks in the future and use the resulting weights to initialize the generator network of TEGAN. MSE-based content loss between the output high resolution flow solution and the input low resolution is used to train the network. The arhitechture of the TEResNet is shown in Figure 1.
