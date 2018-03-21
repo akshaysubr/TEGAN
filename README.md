@@ -6,7 +6,7 @@ Turbulent flow is important in many engineering applications. However, simulatin
 
 Modeling turbulence accurately is extremely challenging especially in capturing high order statistics due to its intermittent nature. GANs have been shown to perform better than other data driven approaches like PCA in capturing high order moments [[1]](https://arxiv.org/pdf/1708.01810.pdf). In addition, generating physically realistic realizations are important for physical simulation data; a constraint not present when using generative models for images. Incorporating this constraint into the GAN framework would be crucial to its performance. The constraint is given by the governing equations for the incompressible flow given below:
 
-<p align="center"><img alt="\begin{align*}&#10;\nabla \cdot \bm{u} &amp;= 0 \\&#10;\frac{\partial \bm{u}}{\partial t} + \left( \bm{u} \cdot \nabla \right) \bm{u} &amp;= - \nabla p + \frac{1}{\mathrm{Re}} \nabla^2 \bm{u}&#10;\end{align*}" src="figures/68ff53efbcb20ecf0dc2e6c6737fc1db.png?invert_in_darkmode" align=middle width="238.44975pt" height="57.49623pt"/></p>
+<p align="center"><img alt="\begin{align*}\nabla \cdot \bm{u} amp;= 0 \\;\frac{\partial \bm{u}}{\partial t} + \left( \bm{u} \cdot \nabla \right) \bm{u} ;= - \nabla p + \frac{1}{\mathrm{Re}} \nabla^2 \bm{u};\end{align*}" src="figures/68ff53efbcb20ecf0dc2e6c6737fc1db.png?invert_in_darkmode" align=middle width="238.44975pt" height="57.49623pt"/></p>
 
 
 ## Data
@@ -32,12 +32,12 @@ The generator has a deep residual network architecture with each residual block 
 
 ### Loss Functions
 The flow field is constrained by the continuity and pressure Poisson equations:
-<p align="center"><img alt="\begin{gather}&#10;\nabla \cdot \bm{u} = 0, \tag{\text{continuity}} \label{eqn:continuity} \\&#10;- \nabla^2 p = \nabla \bm{u} : \nabla \bm{u}^T \tag{\text{pressure Poisson}} \label{eqn:pressure_poisson}&#10;\end{gather}" src="figures/072613ac100a8bbf2eb79caf4db2d813.png?invert_in_darkmode" align=middle width="419.03235pt" height="43.5204pt"/></p>
+<p align="center"><img alt="\begin{gather};\nabla \cdot \bm{u} = 0, \tag{\text{continuity}} \label{eqn:continuity} \\;- \nabla^2 p = \nabla \bm{u} : \nabla \bm{u}^T \tag{\text{pressure Poisson}} \label{eqn:pressure_poisson};\end{gather}" src="figures/072613ac100a8bbf2eb79caf4db2d813.png?invert_in_darkmode" align=middle width="419.03235pt" height="43.5204pt"/></p>
 
 The above equations might not be satisfied exactly by the model's generated output. To combat this, the residual of the above equations can be used as a regularizer for the model through a physics loss.
 
 The loss function minimized for the generator network during training is a combination of
-<p align="center"><img alt="\begin{align*}&#10;\mathcal{L}_\mathrm{GAN} &amp;= \left( 1 - \lambda_\mathrm{A} \right) \mathcal{L}_\mathrm{resnet} + \lambda_\mathrm{A} \mathcal{L}_\mathrm{adversarial}\\&#10;\mathcal{L}_\mathrm{resnet} &amp;= \left( 1 - \lambda_\mathrm{P} \right) \mathcal{L}_\mathrm{content} + \lambda_\mathrm{P} \mathcal{L}_\mathrm{physics} \\&#10;\mathcal{L}_\mathrm{content} &amp;= \left( 1 - \lambda_\mathrm{E} \right) \mathcal{L}_\mathrm{MSE} + \lambda_\mathrm{E} \mathcal{L}_\mathrm{enstrophy} \\&#10;\mathcal{L}_\mathrm{physics} &amp;= \left( 1 - \lambda_\mathrm{C} \right) \mathcal{L}_\mathrm{pressure} + \lambda_\mathrm{C} \mathcal{L}_\mathrm{continuity}&#10;\end{align*}" src="figures/c096094e1e978a4b3fba43a8736c342d.png?invert_in_darkmode" align=middle width="307.8009pt" height="90.950145pt"/></p>
+<p align="center"><img alt="\begin{align*};\mathcal{L}_\mathrm{GAN} ;= \left( 1 - \lambda_\mathrm{A} \right) \mathcal{L}_\mathrm{resnet} + \lambda_\mathrm{A} \mathcal{L}_\mathrm{adversarial}\\;\mathcal{L}_\mathrm{resnet} ;= \left( 1 - \lambda_\mathrm{P} \right) \mathcal{L}_\mathrm{content} + \lambda_\mathrm{P} \mathcal{L}_\mathrm{physics} \\;\mathcal{L}_\mathrm{content} ;= \left( 1 - \lambda_\mathrm{E} \right) \mathcal{L}_\mathrm{MSE} + \lambda_\mathrm{E} \mathcal{L}_\mathrm{enstrophy} \\;\mathcal{L}_\mathrm{physics} ;= \left( 1 - \lambda_\mathrm{C} \right) \mathcal{L}_\mathrm{pressure} + \lambda_\mathrm{C} \mathcal{L}_\mathrm{continuity};\end{align*}" src="figures/c096094e1e978a4b3fba43a8736c342d.png?invert_in_darkmode" align=middle width="307.8009pt" height="90.950145pt"/></p>
 
 
 * **Content loss**: <img alt="$\mathcal{L}_\mathrm{content}$" src="figures/2386a50acaa17111a67fb9f710bf83d3.png?invert_in_darkmode" align=middle width="53.463795pt" height="22.38192pt"/>
