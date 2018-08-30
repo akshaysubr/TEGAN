@@ -122,6 +122,6 @@ For the first few iterations in the training process (~300), the discriminator a
 [4] Raissi, Maziar, Paris Perdikaris, and George Em Karniadakis. "Physics Informed Deep Learning (Part I): Data-driven Solutions of Nonlinear Partial Differential Equations." arXiv preprint arXiv:1711.10561 (2017).
 
 [5] Arjovsky, Martin, Soumith Chintala, and Léon Bottou. "Wasserstein GAN." arXiv preprint arXiv:1701.07875 (2017)
-
+[6] Langr, Jakub and Vladimir Bok. "GANs in Action." https://www.manning.com/books/gans-in-action (2018)
 ## People
 Raunak Borker, Sravya Nimmagadda, Akshay Subramaniam and Man-Long Wong
