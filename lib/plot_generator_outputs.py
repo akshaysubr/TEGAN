@@ -49,7 +49,7 @@ def plot(var, ax, extent=(0, 2.*np.pi,0, 2.*np.pi), vmin=None, vmax=None, cmap=N
     return im
 
 
-def make_comparison_plots(LR, HR, out, output_label='Generated output'):
+def make_comparison_plots(LR, HR, out, output_label=r'$\mathrm{Generated\ output}$'):
 
     vmin = HR.min()
     vmax = HR.max()
@@ -72,21 +72,72 @@ def make_comparison_plots(LR, HR, out, output_label='Generated output'):
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, sharey=True, figsize=(17,5))
 
     im1 = plot(LR,  ax1, vmin=vmin, vmax=vmax)
-    ax1.set_title('Low resolution')
+    ax1.set_title(r'$\mathrm{Low\ resolution}$', fontsize=20)
+    ax1.tick_params(axis='both', which='major', labelsize=14)
 
     im2 = plot(out_BC,  ax2, vmin=vmin, vmax=vmax)
-    ax2.set_title('Bicubic')
+    ax2.set_title(r'$\mathrm{Bicubic}$', fontsize=20)
+    ax2.tick_params(axis='both', which='major', labelsize=14)
 
     im3 = plot(out,  ax3, vmin=vmin, vmax=vmax)
-    ax3.set_title(output_label)
+    ax3.set_title(output_label, fontsize=20)
+    ax3.tick_params(axis='both', which='major', labelsize=14)
 
     im4 = plot(HR, ax4, vmin=vmin, vmax=vmax)
-    ax4.set_title('High resolution')
+    ax4.set_title(r'$\mathrm{High\ resolution}$', fontsize=20)
+    ax4.tick_params(axis='both', which='major', labelsize=14)
 
     fig.tight_layout()
     
     return fig, (ax1, ax2, ax3, ax4)
 
+def make_comparison_plots_2_generators(LR, HR, out_1, out_2, \
+                                       output_1_label=r'$\mathrm{Generated\ output\ 1}$', \
+                                       output_2_label=r'$\mathrm{Generated\ output\ 2}$'):
+
+    vmin = HR.min()
+    vmax = HR.max()
+
+    LR_padded = np.zeros((LR.shape[0]+1,LR.shape[1]+1))
+    LR_padded[:-1,:-1] = LR[:,:]
+    LR_padded[-1,:-1] = LR[0,:]
+    LR_padded[:-1,-1] = LR[:,0]
+    LR_padded[-1,-1] = LR[0,0]
+
+    x_HR = np.linspace(0, LR.shape[0], num=HR.shape[0]+1)[:-1]
+    y_HR = np.linspace(0, LR.shape[1], num=HR.shape[1]+1)[:-1]
+    print(x_HR)
+
+    yy, xx = np.meshgrid(y_HR, x_HR)
+    xx = xx.reshape((-1))
+    yy = yy.reshape((-1))
+    out_BC = ndimage.map_coordinates(LR_padded, [xx, yy], order=3, mode='wrap').reshape(HR.shape)
+
+    fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(1, 5, sharey=True, figsize=(20,5))
+
+    im1 = plot(LR,  ax1, vmin=vmin, vmax=vmax)
+    ax1.set_title(r'$\mathrm{Low\ resolution}$', fontsize=20)
+    ax1.tick_params(axis='both', which='major', labelsize=14)
+
+    im2 = plot(out_BC,  ax2, vmin=vmin, vmax=vmax)
+    ax2.set_title(r'$\mathrm{Bicubic}$', fontsize=20)
+    ax2.tick_params(axis='both', which='major', labelsize=14)
+
+    im3 = plot(out_1,  ax3, vmin=vmin, vmax=vmax)
+    ax3.set_title(output_1_label, fontsize=20)
+    ax3.tick_params(axis='both', which='major', labelsize=14)
+
+    im4 = plot(out_2,  ax4, vmin=vmin, vmax=vmax)
+    ax4.set_title(output_2_label, fontsize=20)
+    ax4.tick_params(axis='both', which='major', labelsize=14)
+    
+    im5 = plot(HR, ax5, vmin=vmin, vmax=vmax)
+    ax5.set_title(r'$\mathrm{High\ resolution}$', fontsize=20)
+    ax5.tick_params(axis='both', which='major', labelsize=14)
+
+    fig.tight_layout()
+    
+    return fig, (ax1, ax2, ax3, ax4, ax5)
 
 
 def convert_to_rgb(a, vmin, vmax,  cmap=plt.cm.viridis):

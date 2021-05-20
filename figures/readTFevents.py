@@ -12,8 +12,8 @@ def get_tags_from_event(filename):
             if (i==0):
                 printed = 0;
                 for val in event.summary.value:
-                    print(val.tag)
-                    tags.append[val.tag]
+                    # print(val.tag)
+                    tags.append(val.tag)
                     printed = 1
                 if (printed):
                     i = 1
@@ -59,7 +59,7 @@ def save_images_from_event(filename, tag, output_dir='./'):
                     count += 1
     return
 
-def read_summary_value(filename, tag='MSE error'):
+def read_summary_value(filename, tag='MSE_error'):
 
     value = []
     
@@ -83,7 +83,7 @@ def read_summaryall_value(filename):
     with sess.as_default():
         for event in tf.train.summary_iterator(filename):
             for val in event.summary.value:
-                summary[tag].append(val.simple_value)
+                summary[val.tag].append(val.simple_value)
 
     return summary
 
