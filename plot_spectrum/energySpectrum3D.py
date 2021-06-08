@@ -15,10 +15,10 @@ class energySpectrum3D(object):
         self.ny = ny
         self.nz = nz
         
-        u    = pyfftw.n_byte_align_empty((nx, ny, nz), 64, dtype='float64', order='F')
-        self.uhat = pyfftw.n_byte_align_empty((nx, ny, nz//2+1), 64, dtype='complex128', order='F')
-        self.vhat = pyfftw.n_byte_align_empty((nx, ny, nz//2+1), 64, dtype='complex128', order='F')
-        self.what = pyfftw.n_byte_align_empty((nx, ny, nz//2+1), 64, dtype='complex128', order='F')
+        u    = pyfftw.n_byte_align_empty((nx, ny, nz), 64, dtype='float64', order='C')
+        self.uhat = pyfftw.n_byte_align_empty((nx, ny, nz//2+1), 64, dtype='complex128', order='C')
+        self.vhat = pyfftw.n_byte_align_empty((nx, ny, nz//2+1), 64, dtype='complex128', order='C')
+        self.what = pyfftw.n_byte_align_empty((nx, ny, nz//2+1), 64, dtype='complex128', order='C')
 
         # Create the FFTW objects for forward and backward transforms
         self.fft  = pyfftw.FFTW(u,self.uhat,axes=(0,1,2),direction='FFTW_FORWARD',  flags=('FFTW_MEASURE', ), threads=24, planning_timelimit=None)
